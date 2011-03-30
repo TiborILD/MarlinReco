@@ -6,8 +6,21 @@
 #include<vector>
 #include <cfortran.h>
 
+// global functions needed for the F77/C++ interface
 
+int tkmktkcpp(int modid,int subdetbits,int MesrCode,int tracktype, int numtes,int Charge,int unused,int ndf,float chi2,float L,float xstart, float ystart, float zstart, float xend, float yend, float zend, float cord1,float cord2,float cord3,float theta,float phi,float invp,float* cov);
 
+float rreadtktkcpp(int attribute, int tk);
+
+int ireadtktkcpp(int attribute, int tk); 
+
+int writetktkcpp(float value, int attribute, int tk); 
+
+int addtetktkcpp(int te, int tk);  
+
+int writetkitkdatcpp(int value, int attribute, int tk);
+
+int readtkitkdatcpp(int attribute, int tk);
 
 class Tk_Tk_Bank
 {

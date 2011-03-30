@@ -8,7 +8,7 @@
 using namespace std;
 
 // Global pointer to the Tk_Tk_Bank structure
-Tk_Tk_Bank * TkTkBank;
+Tk_Tk_Bank * TkTkBank = NULL;
 
 
 Tk_Tk_Bank::Tk_Tk_Bank()
@@ -91,6 +91,11 @@ void Tk_Tk_Bank::add_tk(int modid,int subdetbits,int MesrCode,int tracktype,int 
 //  return 0;
 //}
 
+
+// The following are global functions 
+
+FCALLSCFUN23(INT,tkmktkcpp,TKMKTKCPP,tkmktkcpp, INT , INT ,INT ,INT ,INT ,INT ,INT ,INT, FLOAT, FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT, FLOAT, FLOAT, FLOATV)
+
 int tkmktkcpp(int modid,int subdetbits,int MesrCode,int tracktype, int numtes,int Charge,int unused,int ndf,float chi2,float L,float xstart, float ystart, float zstart, float xend, float yend, float zend, float cord1,float cord2,float cord3,float theta,float phi,float invp,float* cov)
 {
 
@@ -122,6 +127,7 @@ int tkmktkcpp(int modid,int subdetbits,int MesrCode,int tracktype, int numtes,in
   return 0;
 }
 
+FCALLSCFUN2(FLOAT,rreadtktkcpp,RREADTKTKCPP,rreadtktkcpp, INT, INT)
 float rreadtktkcpp(int attribute, int tk)
 {
 
@@ -246,6 +252,7 @@ float rreadtktkcpp(int attribute, int tk)
   } 
 }
 
+FCALLSCFUN2(INT,ireadtktkcpp,IREADTKTKCPP,ireadtktkcpp, INT, INT)
 int ireadtktkcpp(int attribute, int tk)
 {
 
@@ -370,7 +377,7 @@ int ireadtktkcpp(int attribute, int tk)
   } 
 }
 
-
+FCALLSCFUN3(INT,writetktkcpp,WRITETKTKCPP,writetktkcpp, FLOAT, INT, INT)
 int writetktkcpp(float value, int attribute, int tk){
 
   if(tk>TkTkBank->size()) return 1;
@@ -533,6 +540,7 @@ int writetktkcpp(float value, int attribute, int tk){
   
 }
 
+FCALLSCFUN2(INT,addtetktkcpp,ADDTETKTKCPP,addtetktkcpp, INT, INT)
 int addtetktkcpp(int te , int tk) 
 {
   tk = tk - 1;
@@ -542,6 +550,7 @@ int addtetktkcpp(int te , int tk)
   return 0;
 }
 
+FCALLSCFUN3(INT,writetkitkdatcpp,WRITETKITKDATCPP,writetkitkdatcpp, INT, INT, INT)
 int writetkitkdatcpp(int value, int attribute, int tk){
   tk = tk - 1;
   
@@ -565,6 +574,7 @@ int writetkitkdatcpp(int value, int attribute, int tk){
 
 }
 
+FCALLSCFUN2(INT,readtkitkdatcpp,READTKITKDATCPP,readtkitkdatcpp, INT, INT)
 int readtkitkdatcpp(int attribute, int tk)
 {
 

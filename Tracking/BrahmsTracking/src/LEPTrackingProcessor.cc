@@ -225,69 +225,48 @@ FCALLSCFUN2(INT,ireadtkhitscpp,IREADTKHITSCPP,ireadtkhitscpp, INT, INT)
 FCALLSCFUN2(FLOAT,rreadtkhitscpp,RREADTKHITSCPP,rreadtkhitscpp, INT, INT)
 
 
-  int writetktkcpp(float c, int a, int b); 
-
-FCALLSCFUN3(INT,writetktkcpp,WRITETKTKCPP,writetktkcpp, FLOAT, INT, INT)
 
   int writetktecpp(float c, int a, int b); 
 
 FCALLSCFUN3(INT,writetktecpp,WRITETKTECPP,writetktecpp, FLOAT, INT, INT)
 
-  float rreadtktkcpp(int a, int b);
-
-FCALLSCFUN2(FLOAT,rreadtktkcpp,RREADTKTKCPP,rreadtktkcpp, INT, INT)
 
   float rreadtktecpp(int a, int b); 
 
 FCALLSCFUN2(FLOAT,rreadtktecpp,RREADTKTECPP,rreadtktecpp, INT, INT)
 
-  int ireadtktkcpp(int a, int b); 
-
-FCALLSCFUN2(INT,ireadtktkcpp,IREADTKTKCPP,ireadtktkcpp, INT, INT)
 
   int ireadtktecpp(int a, int b); 
 
 FCALLSCFUN2(INT,ireadtktecpp,IREADTKTECPP,ireadtktecpp, INT, INT)
 
-  int tkmktkcpp(int modid,int subdetbits,int MesrCode,int tracktype, int numtes,int Charge,int unused,int ndf,float chi2,float L,float xstart, float ystart, float zstart, float xend, float yend, float zend, float cord1,float cord2,float cord3,float theta,float phi,float invp,float* cov);
 
-FCALLSCFUN23(INT,tkmktkcpp,TKMKTKCPP,tkmktkcpp, INT , INT ,INT ,INT ,INT ,INT ,INT ,INT, FLOAT, FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT, FLOAT, FLOAT, FLOATV)
-  
-  int tkmktecpp(int subid,int submod,int unused,int MesrCode,int PnteTE,int Q,int ndf,float chi2,float L,float cord1,float cord2,float cord3,float theta,float phi,float invp,float dedx,float* cov);
+int tkmktecpp(int subid,int submod,int unused,int MesrCode,int PnteTE,int Q,int ndf,float chi2,float L,float cord1,float cord2,float cord3,float theta,float phi,float invp,float dedx,float* cov);
 
 FCALLSCFUN17(INT,tkmktecpp,TKMKTECPP,tkmktecpp, INT , INT ,INT ,INT ,INT ,INT ,INT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOATV)
 
-  int addtetktkcpp(int a , int b);  
 
-FCALLSCFUN2(INT,addtetktkcpp,ADDTETKTKCPP,addtetktkcpp, INT, INT)
-
-  int addhittktecpp(int a, int b); 
+int addhittktecpp(int a, int b); 
 
 FCALLSCFUN2(INT,addhittktecpp,ADDHITTKTECPP,addhittktecpp, INT, INT)
 
-  int readtkitkdatcpp(int a, int b);
 
-FCALLSCFUN2(INT,readtkitkdatcpp,READTKITKDATCPP,readtkitkdatcpp, INT, INT)
-
-  int readtkitedatcpp(int a, int b); 
+int readtkitedatcpp(int a, int b); 
 
 FCALLSCFUN2(INT,readtkitedatcpp,READTKITEDATCPP,readtkitedatcpp, INT, INT)
 
-  int writetkitkdatcpp(int c, int a, int b);
 
-FCALLSCFUN3(INT,writetkitkdatcpp,WRITETKITKDATCPP,writetkitkdatcpp, INT, INT, INT)
-
-  int writetkitedatcpp(int c, int a, int b);
+int writetkitedatcpp(int c, int a, int b);
 
 FCALLSCFUN3(INT,writetkitedatcpp,WRITETKITEDATCPP,writetkitedatcpp, INT, INT, INT)
 
 
   // definition of gettpcgeom done here it just sends the geomtertry into to tpcgeom.F
-  int gettpcgeom(float* innerrad, float* outerrad, int* npadrows, 
-                  float* maxdrift, float* tpcpixz, float* tpcrpres, float* tpczres, float* tpcbfield){
-
+int gettpcgeom(float* innerrad, float* outerrad, int* npadrows, 
+               float* maxdrift, float* tpcpixz, float* tpcrpres, float* tpczres, float* tpcbfield){
+  
   //  try{
-
+  
   const gear::TPCParameters& gearTPC = Global::GEAR->getTPCParameters() ;
   const gear::PadRowLayout2D& padLayout = gearTPC.getPadLayout() ;
   const gear::DoubleVec & planeExt = padLayout.getPlaneExtent() ;
@@ -867,6 +846,7 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
     delete TkHitBank;
     delete TkTeBank;
     delete TkTkBank;
+    TkTkBank = NULL;
   
     evt->addCollection( _tpcTrackVec , _colNameTPCTracks) ;
     evt->addCollection( _tpclcRelVec , _colNameMCTPCTracksRel) ;
