@@ -117,6 +117,11 @@ C.....max number of hits per track
       INTEGER IDOUTL(*)
       REAL RFIT(6)
       REAL RFITE(15)
+
+      REAL XCOV(15)
+      INTEGER ICOV
+      INTEGER TRY
+
       REAL CHI2FIT
       INTEGER NDFFIT
       INTEGER K,ID,IERR1,IERR2,ITSREF(MXTS)
@@ -157,18 +162,78 @@ C.....max number of hits per track
      >               +128+256 ! track angles theta, phi measured
      >                   +512)! 1/p measured
 
+
+      integer tkmktkcpp
+      external tkmktkcpp
+
 #include "include/fkddes.inc"
 #include "include/tkfunc1.inc"
 #include "include/tkfunc.inc"
 
+C  SJA: set the debug flags 
+      IDEB = 0
+      FSFDBG = IDEB
+      TKSTDBG = IDEB
+      DELADBG = IDEB
+      
+      IF( IDEB.GT.0 ) THEN
+         WRITE(*,101) FSFDBG,IDEB,TKSTDBG,DELADBG
+      END IF
+      
+ 101  FORMAT('TrackFit Called: Debug verbosity:', 
+     >     ' FSFDBG = '  ,I1,
+     >     ' IDEB = '    ,I1,
+     >     ' TKSTDBG = ' ,I1,
+     >     ' DELADBG = ' ,I1)
+      
 
 
-     
-C.....set debug verbosity level
-      FSFDBG=0
-      IDEB=0
-      TKSTDBG=0
-      DELADBG=0
+C SJA: do this here do as I don't know how to handle the Character*4 in the common block
+
+      DO I=1,NEXS
+         IF (ITEXTS(I).EQ.0) THEN
+            TYPX(I) = 'CYLI'
+         ELSE
+            TYPX(I) = 'PLAN'
+         ENDIF
+      ENDDO
+
+C SJA: set these here for now, they used to be set in setmat, but that is not called anymore
+*                                    chisquare probability cut values, |
+*                                    indices = (forward, barrel):      |
+*                                    total chisquare of the track fit  |
+      PRTOT(0) = 0.0001
+      PRTOT(1) = 0.0001
+*                                    smoothed chisquare (outlier test) |
+      PRSMO(0) = 0.0001
+      PRSMO(1) = 0.0001
+*
+
+      if (ideb.gt.0) then
+         print*
+         print '('' material cylinders for track fit'')'
+         print '('' Nr   radius    z-min    z-max    X0     Eloss'')'
+         do i=1,ncmat
+            print '(i3,3f10.4,2f8.5)',
+     $           i,rcmat(i),zcmin(i),zcmax(i),xrlc(i),xelosc(i)
+         enddo
+         print*
+         print '('' material planes for track fit'')'
+         print '('' Nr      z      r-min    r-max    X0     Eloss'')'
+         do i=1,npmat
+            print '(i3,3f10.4,2f8.5)',
+     $           i,zpmat(i),rpmin(i),rpmax(i),xrlp(i),xelosp(i)
+         enddo
+         print*
+         print '('' extrap. cylinders for track fit'')'
+         print '('' Nr  type       radius   z-min     z-max '')'
+
+         do i=1,nexs
+            print '(i3,a6,3f10.4)',
+     $           i,typx(i), rzsurf(i), zrmin(i), zrmax(i)
+         enddo
+      endif
+
   
       N = NHITS
 
@@ -189,21 +254,26 @@ C.....check range
 C.....sort hits according to increasing r
       J=0
 
-C      WRITE(*,*) 'NUMBER OF HITS = ',N
+      IF( IDEB.GT.0 ) THEN
+         WRITE(*,*) 'NUMBER OF HITS = ',N
+         WRITE(*,*) '  R         X         Y         Z           TYPE'
+      END IF
+
       DO I=1,N
          J=J+1
-C         WRITE(*,*) XHIT(I),' ',YHIT(I),' ',ZHIT(I),' ',ITYPE(I)
+
          RLIST(J)=SQRT(XHIT(I)**2+YHIT(I)**2)
          ZLIST(J)=ZHIT(I)
+
+         IF( IDEB.GT.0 ) THEN
+            WRITE(*,*) RLIST(J), XHIT(I),' ',YHIT(I),' ',ZHIT(I),' ',
+     >           ITYPE(I)
+         END IF
+
       END DO
       N=J
       CALL SORTZV(RLIST,ILIST,N,1,0,0)
 
-
-c$$$      WRITE(*,*) ' NCMAT = ', NCMAT
-c$$$      DO I=1,NCMAT
-c$$$        WRITE(*,*) I,'XRLC = ',XRLC(I)
-c$$$      ENDDO
 
 C.....fill all associated hits into local TE structure for TK2FIT
       ILOC=0
@@ -236,8 +306,10 @@ C.......calculate position and covariance matrix for desired detector type
           IMPNT=1     ! cylinder coordinates
      >        +4+8+16 ! 3 coordinates of reference point measured
      >        +32+64  ! covariance matrix for r and rphi
-c          WRITE(*,23) ILOC,IDET(IH),HIT(1),HIT(2),HIT(3),
-c     >                              COV(1),COV(3)
+          IF( IDEB.GT.0 ) THEN
+             WRITE(*,23) ILOC,IDET(IH),POS(1),POS(2),POS(3),
+     >            COV(1),COV(3)
+          END IF
         ELSE
           ! forward detector (planar)
           POS(1)=SQRT(HIT(1)**2+HIT(2)**2)
@@ -253,15 +325,17 @@ c     >                              COV(1),COV(3)
           IMPNT= 0     ! cartesian coordinates
      >         +4+8+16 ! 3 coordinates of reference point measured
      >         +32+64  ! covariance matrix for x and y
-c          WRITE(*,24) ILOC,IDET(IH),HIT(1),HIT(2),HIT(3),
-c     >                              COV(1),COV(3)
+          IF( IDEB.GT.0 ) THEN
+             WRITE(*,24) ILOC,IDET(IH),POS(1),POS(2),POS(3),
+     >            COV(1),COV(3)
+          END IF
         END IF
- 23     FORMAT(I4,' VTX HIT : IDET = ',I2,
-     >                      ' R = ',F6.2,' P = ',F6.2,' Z = ',F6.2,
-     >                      ' RP = ',F10.8,'  RZ = ',F10.8)
- 24     FORMAT(I4,' FTD HIT : IDET = ',I2,
+ 23     FORMAT(I4,' CYLLINDRICAL HIT : IDET = ',I2,
+     >                      ' R = ',F6.2,' RP = ',F6.2,' Z = ',F6.2,
+     >                      ' VarRP = ',F10.8,'  VarRZ = ',F10.8)
+ 24     FORMAT(I4,' PLANNAR HIT      : IDET = ',I2,
      >                      ' X = ',F6.2,' Y = ',F6.2,' Z = ',F6.2,
-     >                      ' RX = ',F10.8,'  RY = ',F10.8)
+     >                      ' VarRX = ',F10.8,'  VarRY = ',F10.8)
 
 
 C.......save in local TE array
@@ -293,25 +367,19 @@ C.....reference trajectory
       
  100  IF (REF(1).EQ.0.0) THEN
 C       create one using FKREF
-CSJAWRT
-c        write(*,*) "hello I'm about to call fkref @$@#$#@$@#$@#$@#$"
-        CALL FKREF(ILOC,RTELOC,RTSREF,ITSREF)
+         CALL FKREF(ILOC,RTELOC,RTSREF,ITSREF)
       ELSE
-C       use parameters given by calling function
-        CALL VZERO(ITSREF,MXTS)
-        ITSREF(3)=1+4+8
-        CALL UCOPY(REF,RTSREF(17),6)
+C     use parameters given by calling function
+         CALL VZERO(ITSREF,MXTS)
+         ITSREF(3)=1+4+8
+         CALL UCOPY(REF,RTSREF(17),6)
       END IF
 
 CSAJWRT      
-c      do i=1, MXTS
-c      write(*,*) "RTSREF(",i,") = ", RTSREF(i) 
-c      end do 
-
+      IF( IDEB.GT.0 ) THEN
+         WRITE(6,'(A,6F10.4)') 'TS: ref traj    : ',(RTSREF(I),I=17,22)
+      END IF
 CSAJWRT
-c      do i=1, MXTE
-c      write(*,*) "RTELOC(",i,1,") = ", RTELOC(i,1) 
-c      end do 
 
 
 C.....track fit
@@ -322,6 +390,7 @@ C.....track fit
          END IF
          ILOC=NTEMX
       END IF
+
       DO I=1,ILOC
         IDTE(I)=I
       END DO
@@ -486,11 +555,11 @@ C        WRITE(*,*) IDOUTL(I)
          IF (IFLX(IX).EQ.0) THEN
             IF (TYPX(IX).EQ.'CYLI'.AND.ABS(DATX(1,IX)).GT.REFRAD) THEN               
                DELTADIST = ABS(DATX(1,IX)-REFRAD)
-c               DELTADIST = ABS(DATX(1,IX)-RHMIN)  
-c            ELSE
-c               DELTADIST = ABS(DATX(3,IX)-REF(3))
-c               REFRAD = SQRT(DATX(1,IX)**2+DATX(2,IX))
-c               DELTADIST = ABS(REFRAD-RHMIN)
+c     DELTADIST = ABS(DATX(1,IX)-RHMIN)  
+c     ELSE
+c     DELTADIST = ABS(DATX(3,IX)-REF(3))
+c     REFRAD = SQRT(DATX(1,IX)**2+DATX(2,IX))
+c     DELTADIST = ABS(REFRAD-RHMIN)
             ENDIF
             IF (DELTADIST.LT.DISTMIN) THEN
                DISTMIN = DELTADIST
@@ -504,6 +573,30 @@ c               DELTADIST = ABS(REFRAD-RHMIN)
       ELSE
          FITCODE = 0
       ENDIF
+
+C      WRITE(*,*) "FitCode = ", FITCODE
+C      WRITE(*,*) "IXPNT = ", IXPNT
+C      WRITE(*,*) "DISTMIN = ", DISTMIN
+C      WRITE(*,*) "REFRAD = ", REFRAD
+
+
+C SJA before filling the TKbanks here we should really check if they are empty ...
+
+      DO 603 IX=1,NEXS
+         IF (IFLX(IX).EQ.0) THEN
+            IF (TYPX(IX).EQ.'CYLI') THEN               
+               DO ICOV=1, 15
+                  XCOV(ICOV) = (DATX(ICOV+6,IX))
+               ENDDO
+               TRY = TKMKTKCPP(0,0,FITCODE,0,
+     +              0,0,0,0,0,
+     +              0,0,0,0,0,
+     +              0,0,DATX(1,IX),DATX(2,IX),DATX(3,IX),
+     +              DATX(4,IX),DATX(5,IX),DATX(6,IX),XCOV)
+            ENDIF
+         ENDIF
+ 603   CONTINUE
+
 
       DO IX=1,6
          RFIT(IX) = DATX(IX,IXPNT)
