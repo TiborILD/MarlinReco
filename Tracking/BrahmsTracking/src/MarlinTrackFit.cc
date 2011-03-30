@@ -76,6 +76,7 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
     }
   }
   
+
   HelixClass  helix;
 
   // do prefit using simple helix fit model ---->
@@ -87,8 +88,10 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
 	    wfz,IOPT,param,eparam,chi2rphi,chi2z);    
     param[3] = param[3]*param[0]/fabs(param[0]);
     ConvertLCtoTANAGRA(param,bField,ref);
+
   }
   else if (fitOpt == 1) { // simple helix fit with ClusterShapes class
+
     // create instance of class ClusterShapes
     ClusterShapes * shapes = new ClusterShapes(nhits,ampl,xhit,yhit,zhit);
     float parSh[5];
@@ -116,11 +119,15 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
     ConvertLCtoTANAGRA(param,bField,ref);
   }
   else if (fitOpt == 2) { // Initial parameters are set by user
+
       param[0] = 10.*param[0];
       param[3] = 0.1*param[3];
       param[4] = 0.1*param[4];
       ConvertLCtoTANAGRA(param,bField,ref);
   }
+
+
+
 
   float omegaTmp = param[0];
   float tanLambdaTmp = param[1];
@@ -141,8 +148,12 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
       std::cout << "Chi2Sh=" << chi2Sh << std::endl;
       std::cout << "NdfSh=" << ndfSh << std::endl;
   }
-  
-  if (chi2Sh/float(ndfSh) > chi2PrefitCut) { // prefit condition not fulfilled
+
+
+
+  // the prefit is only relevant for fitOpt < 3
+  if ( (fitOpt < 3 ) && (chi2Sh/float(ndfSh) > chi2PrefitCut) ) { // prefit condition not fulfilled
+
     delete[] xhit;
     delete[] yhit;
     delete[] zhit;
@@ -167,6 +178,7 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
     param[0] = 0.1*param[0];
     param[3] = 10.0*param[3];
     param[4] = 10.0*param[4];
+
     return -1;
   }
 
@@ -199,8 +211,7 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
   int fitCode;
   int noutl = 0;
 
-  if (fitOpt >= 3 )
-      ref[0] = 0;  
+  if (fitOpt >= 3 ) ref[0] = 0;  
 
   trackfit_(nfit,iDet,iTyp,xhit,yhit,zhit,rphireso,zreso,ref,ierr,
 	    rfit,rfite,chi2,ndf,noutl,idoutl,fitCode);  
@@ -612,7 +623,7 @@ void MarlinTrackFit::ConvertTANAGRAtoLC(float * rfit, float & bField, int & fitC
   double s = atan2(-alpha,beta) / omega ;
   
   double z0 = z_ref + s * tanLambda ;
-    
+     
   double d0;
 
   if (charge > 0) {
