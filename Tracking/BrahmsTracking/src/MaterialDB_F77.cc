@@ -20,6 +20,7 @@
 #include <gear/PadRowLayout2D.h>
 #include <gear/BField.h>
 
+
 using marlin::Global ;
 
 namespace marlin_delphiF77{
@@ -68,56 +69,129 @@ namespace marlin_delphiF77{
     
   }
   
-  
+// Global static pointer used to ensure a single instance of the class.
+  MaterialDB_F77* MaterialDB_F77::_pInstance = NULL; 
+
+  MaterialDB_F77* MaterialDB_F77::Instance() {
+
+    if( ! _pInstance ) {
+      _pInstance = new MaterialDB_F77 ;
+      _pInstance->checkCommonBlocks() ;
+      _pInstance->initialise() ;
+    } 
+
+    _pInstance->checkCommonBlocks() ;
+
+    return _pInstance ;
+  }
+
   MaterialDB_F77::~MaterialDB_F77(){
   }
 
-  void MaterialDB_F77::initialise(bool withMSOn){
-  
-    if ( _isInitialised ) 
-      { 
-	MaterialDB_F77exception exp;
-	throw exp; 
-      } 
-    else 
-      {
-	if( withMSOn ){
-	  this->buildBeamPipe() ;
-	  this->buildVXD();
-	  this->buildSIT();
-	  this->buildTPC();
-	}
-	this->finaliseCommonBlocks();
-	_isInitialised=true;
-      }
+  void MaterialDB_F77::initialise(){
+    
+    this->buildBeamPipe() ;
+    this->buildVXD();
+    this->buildSIT();
+    this->buildTPC();
+
+    streamlog_out(MESSAGE) << "MaterialDB_F77: Detector building finnished" << std::endl ; 
+
+    switchONMaterial();
+    
+    // extrapolation surfaces
+    fkexts_.nexs = _Nexs;
+
+    // set the magnetic field constants 
+    float bField = float(Global::GEAR->getBField().at( gear::Vector3D( 0., 0., 0.) ).z());
+    fkfild_.consb = 2.997924e-3*bField;
+    coildims_.bfield = bField * 10.0 ; // F77 code uses kGauss
+    
+    streamlog_out(MESSAGE) << "MaterialDB_F77 " 
+			   << " Npmat " << _Npmat << ":" <<  fkddes_.npmat
+			   << " Ncmat " << _Ncmat << ":" << fkddes_.ncmat
+			   << " Nconmat " << _Nconmat << ":" << fkddes1_.nconmat
+			   << " Nplmat " << _Nplmat << ":" << fkddes2_.nplmat
+			   << " Nexs " << _Nexs << ":" << fkexts_.nexs 
+			   << std::endl;
+    
   }
 
 
-  bool MaterialDB_F77::isInitialise(){
-
+  void MaterialDB_F77::checkCommonBlocks(){
+    
     MaterialDB_F77exception exp;  
-    if ( ! _isInitialised ) 
-      { 
-	throw exp; 
-      } 
-    else 
-      {
-	// check that nothing has changed in the common blocks since we last checked	
-	if( 
-	   _Ncmat   != fkddes_.ncmat
-	   ||
-	   _Npmat   != fkddes_.npmat
-	   ||
-	   _Nconmat != fkddes1_.nconmat
-	   ||
-	   _Nplmat  != fkddes2_.nplmat
-	   ||
-	   _Nexs    != fkexts_.nexs
-	    )
-	  { throw exp ; }
+    // check that nothing has changed in the common blocks since we last checked	
 
-      }
-    return true ;
+    if( _Nexs != fkexts_.nexs )  {
+      streamlog_out(ERROR) << "Miss-match in common blocks: " 
+			   << " Nexs = " << _Nexs
+			   << " fkexts_.nexs = " << fkexts_.nexs 
+			   << std::endl ;
+      throw exp ; 
+    }
+
+    if( _useMaterials ) {
+      if( 
+	 fkddes_.ncmat != _Ncmat
+	 ||
+	 fkddes_.npmat != _Npmat  
+	 ||
+	 fkddes1_.nconmat != _Nconmat
+	 ||
+	 fkddes2_.nplmat != _Nplmat  
+	  )
+	{ 
+	  streamlog_out(ERROR) << "Miss-match in common blocks: " 
+			       << " Ncmat = " << _Ncmat
+			       << " fkddes_.ncmat = " << fkddes_.ncmat
+			       << " Npmat = " << _Npmat
+			       << " fkddes_.npmat = " << fkddes_.npmat 
+			       << " Nconmat = " << _Nconmat
+			       << " fkddes1_.nconmat = " << fkddes1_.nconmat 
+			       << " Nplmat = " << _Nplmat
+			       << " fkddes2_.nplmat = " << fkddes2_.nplmat 
+			       << std::endl ;
+	  throw exp ; 
+	}      
+    }
+    else{
+      if( 
+	 fkddes_.ncmat != 0
+	 ||
+	 fkddes_.npmat != 0 
+	 ||
+	fkddes1_.nconmat != 0
+	 ||
+	 fkddes2_.nplmat != 0
+	  )      
+	{ 
+	  throw exp ; 
+	}      
+    }
+  }
+
+  void MaterialDB_F77::switchOFFMaterial(){
+    // set the number of material planes to 0
+    fkddes_.ncmat = 0 ;
+    fkddes_.npmat = 0 ;
+    fkddes1_.nconmat = 0 ;
+    fkddes2_.nplmat = 0 ;
+
+    _useMaterials = false ;
+
+  }
+
+  void MaterialDB_F77::switchONMaterial(){
+
+    // setting numbers of planar, cyllinder, conical and realistic ladder surfaces
+    fkddes_.npmat = _Npmat;
+    fkddes_.ncmat = _Ncmat;
+    fkddes1_.nconmat = _Nconmat;
+    fkddes2_.nplmat = _Nplmat;
+
+    _useMaterials = true ;
+    
   }
 
 
@@ -679,30 +753,5 @@ namespace marlin_delphiF77{
     return build_SIT_Simple;
   }
 
-  void MaterialDB_F77::finaliseCommonBlocks(){
-  
-    // setting numbers of planar, cyllinder, conical and realistic ladder surfaces
-    fkddes_.npmat = _Npmat;
-    fkddes_.ncmat = _Ncmat;
-    fkddes1_.nconmat = _Nconmat;
-    fkexts_.nexs = _Nexs;
-    
-    //Set to 0 for no planar Material
-    fkddes2_.nplmat = _Nplmat;
-
-//    // set the magnetic field constants 
-    float bField = float(Global::GEAR->getBField().at( gear::Vector3D( 0., 0., 0.) ).z());
-    fkfild_.consb = 2.997924e-3*bField;
-    coildims_.bfield = bField * 10.0 ; // F77 code uses kGauss
-
-    streamlog_out(MESSAGE) << "MaterialDB_F77::finaliseCommonBlocks() " 
-			   << " Npmat " << _Npmat 
-			   << " Ncmat " << _Ncmat 
-			   << " Nconmat " << _Nconmat 
-			   << " Nexs " << _Nexs 
-			   << " Nplmat " << _Nplmat
-			   << std::endl;
-      
-  }
 
 } // end of marlin_delphiF77 namespace 

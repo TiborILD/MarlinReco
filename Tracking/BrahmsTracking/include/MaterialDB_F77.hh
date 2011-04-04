@@ -17,12 +17,10 @@ namespace marlin_delphiF77{
   
   class MaterialDB_F77 
   {
+
   public:
-    static MaterialDB_F77& Instance()
-    {
-      static MaterialDB_F77 singleton;
-      return singleton;
-    }
+
+    static MaterialDB_F77* Instance() ;
     
     // Other non-static member functions
   
@@ -30,25 +28,30 @@ namespace marlin_delphiF77{
   
     ~MaterialDB_F77();   
 
-    void initialise(bool withMSOn) ;
-    bool isInitialise() ;
+    void switchOFFMaterial() ;
+    void switchONMaterial() ;
 
   private:
-    MaterialDB_F77(): 
-      _isInitialised(false), _Ncmat(0), _Npmat(0), _Nconmat(0), _Nexs(0), _Nplmat(0)
-    { } ;           // Private constructor
+
+    MaterialDB_F77():            // Private constructor 
+    _useMaterials(false), _Ncmat(0), _Npmat(0), _Nconmat(0), _Nexs(0), _Nplmat(0)
+    { } ;
+
     MaterialDB_F77(const MaterialDB_F77&) ;                 // Prevent copy-construction
     MaterialDB_F77& operator=(const MaterialDB_F77&) ;      // Prevent assignment
-  
-    void finaliseCommonBlocks() ;
+
+    void initialise() ;  
+
+    void checkCommonBlocks() ;
+
     bool buildBeamPipe() ;
     bool buildVXD();
     bool buildSIT();
     bool buildTPC();
 
     // private memeber variables
-  
-    bool _isInitialised;
+    static MaterialDB_F77* _pInstance ;  
+
     bool _useMaterials;
 
     int _Ncmat ;
@@ -59,6 +62,6 @@ namespace marlin_delphiF77{
   
   };
 
-} // end of marlin_kaltest namespace 
+} // end of marlin_delphiF77 namespace 
 
 #endif
