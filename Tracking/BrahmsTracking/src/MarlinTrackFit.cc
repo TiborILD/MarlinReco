@@ -2,10 +2,15 @@
 #include "ClusterShapes.h"
 #include <math.h>
 
+#include "MaterialDB_F77.hh"
+
 MarlinTrackFit::MarlinTrackFit() {
     _parIpReso[0] = 0.0;
     _parIpReso[1] = 0.0;
     _parIpReso[2] = 1.0;
+
+
+
 }
 
 MarlinTrackFit::~MarlinTrackFit() {}
@@ -213,6 +218,7 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
 
   if (fitOpt >= 3 ) ref[0] = 0;  
 
+  marlin_delphiF77::MaterialDB_F77::Instance()->switchONMaterial();
   trackfit_(nfit,iDet,iTyp,xhit,yhit,zhit,rphireso,zreso,ref,ierr,
 	    rfit,rfite,chi2,ndf,noutl,idoutl,fitCode);  
   
@@ -258,6 +264,7 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
     }                
     nfit = NPT;
     if (nfit>=3) {
+      marlin_delphiF77::MaterialDB_F77::Instance()->switchONMaterial();
       trackfit_(nfit,iDet,iTyp,xhit,yhit,zhit,rphireso,zreso,ref,ierr,
 		rfit,rfite,chi2,ndf,noutl,idoutl,fitCode);  
       if (ierr!=0) noutl = 0;

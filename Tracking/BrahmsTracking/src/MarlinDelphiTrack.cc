@@ -39,12 +39,10 @@ namespace marlin_delphiF77{
     : _initialLCTrack(lcTrk), _currentLCTrack(NULL), _fit_done(false)
   {
 
-    if( MaterialDB_F77::Instance().isInitialise()) ; // this will throw if it any has gone wrong
-
     // use global TkTkBank pointer for now. The TkTkBank should be made into a singleton
-    if( TkTkBank != NULL) throw ;
-    TkTkBank = new Tk_Tk_Bank ;  
-    TkTkBank->clear();
+    //    if( TkTkBank != NULL) throw ;
+    //    TkTkBank = new Tk_Tk_Bank ;  
+    Tk_Tk_Bank::Instance().clear();
 
     _lcioHits = lcTrk->getTrackerHits() ;
   
@@ -99,8 +97,8 @@ namespace marlin_delphiF77{
   } 
 
   MarlinDelphiTrack::~MarlinDelphiTrack(){
-    delete TkTkBank;
-    TkTkBank = NULL;
+    //    delete TkTkBank;
+    //    TkTkBank = NULL;
     for( unsigned int i=0; i < _tanagra_fits.size(); ++i) {
       delete _tanagra_fits[i] ;
     }
@@ -110,6 +108,8 @@ namespace marlin_delphiF77{
   bool MarlinDelphiTrack::fit( bool fitDirection ) {
 
     streamlog_out(DEBUG) << "MarlinDelphiTrack::fit() called " << std::endl ;
+
+    MaterialDB_F77::Instance()->switchONMaterial();
 
     if (_lcioHits.size() < 3) {
     
@@ -220,10 +220,10 @@ namespace marlin_delphiF77{
 			     << std::endl ;
 
       streamlog_out( DEBUG ) << "MarlinDelphiTrack::fit(): "
-			     << "number of extrapolation surfaces = " << TkTkBank->size()
+			     << "number of extrapolation surfaces = " << Tk_Tk_Bank::Instance().size()
 			     << std::endl ;    
 
-      for(int iext=0; iext < TkTkBank->size(); ++iext) 
+      for(int iext=0; iext < Tk_Tk_Bank::Instance().size(); ++iext) 
 	{
 
 	  float ex_tanagra_param[6]; 
@@ -232,30 +232,30 @@ namespace marlin_delphiF77{
 	  float ex_lcio_param[5]; 
 	  float ex_lcio_eparam[15];
 	
-	  ex_tanagra_param[0] = TkTkBank->getCoord1_of_ref_point(iext);
-	  ex_tanagra_param[1] = TkTkBank->getCoord2_of_ref_point(iext);
-	  ex_tanagra_param[2] = TkTkBank->getCoord3_of_ref_point(iext);
-	  ex_tanagra_param[3] = TkTkBank->getTheta(iext);
-	  ex_tanagra_param[4] = TkTkBank->getPhi(iext);
-	  ex_tanagra_param[5] = TkTkBank->getInvp(iext);
+	  ex_tanagra_param[0] = Tk_Tk_Bank::Instance().getCoord1_of_ref_point(iext);
+	  ex_tanagra_param[1] = Tk_Tk_Bank::Instance().getCoord2_of_ref_point(iext);
+	  ex_tanagra_param[2] = Tk_Tk_Bank::Instance().getCoord3_of_ref_point(iext);
+	  ex_tanagra_param[3] = Tk_Tk_Bank::Instance().getTheta(iext);
+	  ex_tanagra_param[4] = Tk_Tk_Bank::Instance().getPhi(iext);
+	  ex_tanagra_param[5] = Tk_Tk_Bank::Instance().getInvp(iext);
 
-	  int fit_code = TkTkBank->getMeasurement_code(iext);
+	  int fit_code = Tk_Tk_Bank::Instance().getMeasurement_code(iext);
 
-	  ex_tanagra_eparam[0] = TkTkBank->getCovmatrix1(iext) ;
-	  ex_tanagra_eparam[1] = TkTkBank->getCovmatrix2(iext) ;
-	  ex_tanagra_eparam[2] = TkTkBank->getCovmatrix3(iext) ;
-	  ex_tanagra_eparam[3] = TkTkBank->getCovmatrix4(iext) ;
-	  ex_tanagra_eparam[4] = TkTkBank->getCovmatrix5(iext) ;
-	  ex_tanagra_eparam[5] = TkTkBank->getCovmatrix6(iext) ;
-	  ex_tanagra_eparam[6] = TkTkBank->getCovmatrix7(iext) ;
-	  ex_tanagra_eparam[7] = TkTkBank->getCovmatrix8(iext) ;
-	  ex_tanagra_eparam[8] = TkTkBank->getCovmatrix9(iext) ;
-	  ex_tanagra_eparam[9] = TkTkBank->getCovmatrix10(iext) ;
-	  ex_tanagra_eparam[10] = TkTkBank->getCovmatrix11(iext) ;
-	  ex_tanagra_eparam[11] = TkTkBank->getCovmatrix12(iext) ;
-	  ex_tanagra_eparam[12] = TkTkBank->getCovmatrix13(iext) ;
-	  ex_tanagra_eparam[13] = TkTkBank->getCovmatrix14(iext) ;
-	  ex_tanagra_eparam[14] = TkTkBank->getCovmatrix15(iext) ;
+	  ex_tanagra_eparam[0] = Tk_Tk_Bank::Instance().getCovmatrix1(iext) ;
+	  ex_tanagra_eparam[1] = Tk_Tk_Bank::Instance().getCovmatrix2(iext) ;
+	  ex_tanagra_eparam[2] = Tk_Tk_Bank::Instance().getCovmatrix3(iext) ;
+	  ex_tanagra_eparam[3] = Tk_Tk_Bank::Instance().getCovmatrix4(iext) ;
+	  ex_tanagra_eparam[4] = Tk_Tk_Bank::Instance().getCovmatrix5(iext) ;
+	  ex_tanagra_eparam[5] = Tk_Tk_Bank::Instance().getCovmatrix6(iext) ;
+	  ex_tanagra_eparam[6] = Tk_Tk_Bank::Instance().getCovmatrix7(iext) ;
+	  ex_tanagra_eparam[7] = Tk_Tk_Bank::Instance().getCovmatrix8(iext) ;
+	  ex_tanagra_eparam[8] = Tk_Tk_Bank::Instance().getCovmatrix9(iext) ;
+	  ex_tanagra_eparam[9] = Tk_Tk_Bank::Instance().getCovmatrix10(iext) ;
+	  ex_tanagra_eparam[10] = Tk_Tk_Bank::Instance().getCovmatrix11(iext) ;
+	  ex_tanagra_eparam[11] = Tk_Tk_Bank::Instance().getCovmatrix12(iext) ;
+	  ex_tanagra_eparam[12] = Tk_Tk_Bank::Instance().getCovmatrix13(iext) ;
+	  ex_tanagra_eparam[13] = Tk_Tk_Bank::Instance().getCovmatrix14(iext) ;
+	  ex_tanagra_eparam[14] = Tk_Tk_Bank::Instance().getCovmatrix15(iext) ;
 	
 	  ConvertTANAGRAtoLC( ex_tanagra_param, bField, fit_code, ex_lcio_param );
 	  ConvertCovMatrix( ex_tanagra_param, ex_tanagra_eparam, ex_lcio_param, bField, fit_code, ex_lcio_eparam) ;	

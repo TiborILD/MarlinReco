@@ -78,8 +78,7 @@ void DelphiTrackFitProcessor::init() {
   printParameters() ;
 
   // set up the geometery needed by F77
-  MaterialDB_F77::Instance().initialise(_MSOn);
-  //  _kaltest = new MarlinKalTest( *marlin::Global::GEAR ) ;
+  MaterialDB_F77::Instance()->switchONMaterial();
 
   _n_run = 0 ;
   _n_evt = 0 ;

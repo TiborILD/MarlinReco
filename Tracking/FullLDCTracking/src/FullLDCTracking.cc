@@ -24,6 +24,7 @@
 #include <gear/BField.h>
 #include <UTIL/LCTOOLS.h>
 #include <UTIL/LCRelationNavigator.h>
+#include "MaterialDB_F77.hh"
 
 using namespace lcio ;
 using namespace marlin ;
@@ -467,6 +468,8 @@ void FullLDCTracking::processRunHeader( LCRunHeader* run) {
 } 
 
 void FullLDCTracking::processEvent( LCEvent * evt ) { 
+
+  marlin_delphiF77::MaterialDB_F77::Instance()->switchONMaterial();
 
   _evt = evt;
 

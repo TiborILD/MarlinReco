@@ -39,6 +39,8 @@
 #include"tktkbank.h"
 #include"tkmcbank.h"
 
+#include "MaterialDB_F77.hh"
+
 //#include"marlin_tpcgeom.h"
 #include"constants.h"
 
@@ -264,6 +266,8 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
   Tk_Hit_Bank::Instance().clear();
   Tk_Te_Bank::Instance().clear();
   Tk_Tk_Bank::Instance().clear();
+
+  marlin_delphiF77::MaterialDB_F77::Instance()->switchONMaterial();
 
   LCCollection* tpcTHcol = 0 ;
 

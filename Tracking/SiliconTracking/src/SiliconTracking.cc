@@ -23,6 +23,9 @@
 #include <gear/VXDLayerLayout.h>
 #include <gear/BField.h>
 
+#include "MaterialDB_F77.hh"
+
+
 using namespace lcio ;
 using namespace marlin ;
 
@@ -519,6 +522,8 @@ void SiliconTracking::processRunHeader( LCRunHeader* run) {
 } 
 
 void SiliconTracking::processEvent( LCEvent * evt ) { 
+
+  marlin_delphiF77::MaterialDB_F77::Instance()->switchONMaterial();
 
   // Intitialization of some constants and cuts
   PI = acos(double(-1.0));
