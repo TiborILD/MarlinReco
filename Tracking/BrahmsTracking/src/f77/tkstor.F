@@ -370,12 +370,12 @@ ccc        END DO
 ccc        IF (NFVTX.GT.NTVTX) ITSDAT(5,INDEX)=ISIGN(ITSDAT(5,INDEX),-1)
 ccc
         ! debug info
-        IF (TKSTDBG.GT.1) THEN
-          WRITE(6,*) 'TKSTOR: TS consists of the following tracks:'
-          DO I=1,NTSTRK
-            WRITE(6,*) '      ',ITSTRK(I),' (',NTSTKH(I),' HITS)'
-          END DO
-        END IF
+C        IF (TKSTDBG.GT.1) THEN
+C          WRITE(6,*) 'TKSTOR: TS consists of the following tracks:'
+C          DO I=1,NTSTRK
+C            WRITE(6,*) '      ',ITSTRK(I),' (',NTSTKH(I),' HITS)'
+C          END DO
+C        END IF
 
 
 
