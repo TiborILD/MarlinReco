@@ -26,7 +26,13 @@ class Tk_Tk_Bank
 {
 
  public:
-  Tk_Tk_Bank() ;
+
+  static Tk_Tk_Bank& Instance()
+  {
+    static Tk_Tk_Bank singleton;
+    return singleton;
+  }
+
   ~Tk_Tk_Bank() ;
 
   void clear();
@@ -130,6 +136,12 @@ class Tk_Tk_Bank
 
  private:
 
+  Tk_Tk_Bank() {} ;
+
+  Tk_Tk_Bank(const Tk_Tk_Bank &);
+  Tk_Tk_Bank & operator = (const Tk_Tk_Bank &);
+
+
 struct tk_tk 
 {
   int modid ;
@@ -195,7 +207,7 @@ struct tk_itkdat
 } ;
 
 // Global pointer to the Tk_Tk_Bank structure which is defined in tktkbank.cc 
-extern Tk_Tk_Bank * TkTkBank ;
+//extern Tk_Tk_Bank * TkTkBank ;
 
 
 #endif

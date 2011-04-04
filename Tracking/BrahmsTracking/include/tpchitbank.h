@@ -8,13 +8,21 @@
 
 using namespace std;
 
-
+// global functions needed for the F77/C++ interface
+float readtpchitscpp(int a, int b); 
+int writetpccpp(float c, int a, int b); 
 
 class TPC_Hit_Bank
 {
 
  public:
-  TPC_Hit_Bank();
+
+  static TPC_Hit_Bank& Instance()
+  {
+    static TPC_Hit_Bank singleton;
+    return singleton;
+  }
+  
   ~TPC_Hit_Bank();
   //  void add_hit(float, float, float, float, int, int, int, int, int, float, float);
   void clear();
@@ -48,6 +56,11 @@ class TPC_Hit_Bank
 
  private:
 
+  TPC_Hit_Bank() {} ;
+
+  TPC_Hit_Bank(const TPC_Hit_Bank &);
+  TPC_Hit_Bank & operator = (const TPC_Hit_Bank &);
+
 struct TPC_hit 
 {
   float    x;
@@ -68,8 +81,6 @@ struct TPC_hit
 
 };
 
-// Global pointer to the TPC_Hit_Bank structure which is defined in TPC_Hit_Bank.cc 
-extern TPC_Hit_Bank * TPCHitBank;
 
 // Common Block used to store the number of hits in the hit bank
 //typedef struct { int ntphits; } CNTPC_DEF;

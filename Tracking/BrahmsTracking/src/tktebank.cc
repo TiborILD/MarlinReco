@@ -7,14 +7,6 @@
 
 using namespace std;
 
-// Global pointer to the Tk_Te_Bank structure
-Tk_Te_Bank * TkTeBank;
-
-
-Tk_Te_Bank::Tk_Te_Bank()
-{
-}
-
 Tk_Te_Bank::~Tk_Te_Bank()
 {
 }
@@ -80,7 +72,7 @@ void Tk_Te_Bank::add_te(int subid,int submod,int unused,int MesrCode,int PnteTE,
 //int tkmktecpp(int subid,int submod,int unused,int MesrCode,int PnteTE,int Q,int ndf,float chi2,float L,float cord1,float cord2,float cord3,float theta,float phi,float invp,float dedx,float cov1,float cov2,float cov3,float cov4,float cov5,float cov6,float cov7,float cov8,float cov9,float cov10,float cov11,float cov12,float cov13,float cov14,float cov15)
 //{
 // 
-//  TkTeBank->add_te(subid, submod, unused, MesrCode, PnteTE, Q, ndf, chi2, L, cord1, cord2, cord3, theta, phi, invp, dedx, cov1, cov2, cov3, cov4, cov5, cov6, cov7, cov8, cov9, cov10, cov11, cov12, cov13, cov14, cov15);
+//  Tk_Te_Bank::Instance().add_te(subid, submod, unused, MesrCode, PnteTE, Q, ndf, chi2, L, cord1, cord2, cord3, theta, phi, invp, dedx, cov1, cov2, cov3, cov4, cov5, cov6, cov7, cov8, cov9, cov10, cov11, cov12, cov13, cov14, cov15);
 // 
 //  return 0;
 //}
@@ -112,352 +104,355 @@ int tkmktecpp(int subid,int submod,int unused,int MesrCode,int PnteTE,int Q,int 
 //   cout << "cov6 = " << cov6 << endl; 
 //   cout << "cov15 = " << cov15 << endl; 
 
-  TkTeBank->add_te(subid, submod, unused, MesrCode, PnteTE, Q, ndf, chi2, L, cord1, cord2, cord3, theta, phi, invp, dedx, cov1, cov2, cov3, cov4, cov5, cov6, cov7, cov8, cov9, cov10, cov11, cov12, cov13, cov14, cov15);
+  Tk_Te_Bank::Instance().add_te(subid, submod, unused, MesrCode, PnteTE, Q, ndf, chi2, L, cord1, cord2, cord3, theta, phi, invp, dedx, cov1, cov2, cov3, cov4, cov5, cov6, cov7, cov8, cov9, cov10, cov11, cov12, cov13, cov14, cov15);
   return 0;
 }
+FCALLSCFUN17(INT,tkmktecpp,TKMKTECPP,tkmktecpp, INT , INT ,INT ,INT ,INT ,INT ,INT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOATV)
 
 float rreadtktecpp(int attribute, int te)
 {
 
   te = te - 1;
 
-  if(te>TkTeBank->size()) return 0.;
+  if(te>Tk_Te_Bank::Instance().size()) return 0.;
 
   switch (attribute) {
   case 1: 
-    return TkTeBank->getSubdetector_ID(te);
+    return Tk_Te_Bank::Instance().getSubdetector_ID(te);
     break;
   case 2: 
-    return TkTeBank->getSubmodule(te);
+    return Tk_Te_Bank::Instance().getSubmodule(te);
      break;
   case 3: 
-    return TkTeBank->getUnused(te);
+    return Tk_Te_Bank::Instance().getUnused(te);
     break;
   case 4: 
-    return TkTeBank->getMeasurement_code(te);
+    return Tk_Te_Bank::Instance().getMeasurement_code(te);
     break;
   case 5: 
-    return TkTeBank->getPointer_to_end_of_TE(te);
+    return Tk_Te_Bank::Instance().getPointer_to_end_of_TE(te);
     break;
   case 6: 
-    return TkTeBank->getCharge(te);
+    return Tk_Te_Bank::Instance().getCharge(te);
     break;
   case 7: 
-    return TkTeBank->getNdf(te);
+    return Tk_Te_Bank::Instance().getNdf(te);
     break;
   case 8: 
-    return TkTeBank->getChi2(te);
+    return Tk_Te_Bank::Instance().getChi2(te);
     break;
   case 9: 
-    return TkTeBank->getLength(te);
+    return Tk_Te_Bank::Instance().getLength(te);
     break;
   case 10: 
-    return TkTeBank->getCoord1_of_ref_point(te);
+    return Tk_Te_Bank::Instance().getCoord1_of_ref_point(te);
     break;
   case 11: 
-    return TkTeBank->getCoord2_of_ref_point(te);
+    return Tk_Te_Bank::Instance().getCoord2_of_ref_point(te);
     break;
   case 12: 
-    return TkTeBank->getCoord3_of_ref_point(te);
+    return Tk_Te_Bank::Instance().getCoord3_of_ref_point(te);
     break;
   case 13: 
-    return TkTeBank->getTheta(te);
+    return Tk_Te_Bank::Instance().getTheta(te);
     break;
   case 14: 
-    return TkTeBank->getPhi(te);
+    return Tk_Te_Bank::Instance().getPhi(te);
     break;
   case 15: 
-    return TkTeBank->getInvp(te);
+    return Tk_Te_Bank::Instance().getInvp(te);
     break;
   case 16: 
-    return TkTeBank->getDe_dx(te);
+    return Tk_Te_Bank::Instance().getDe_dx(te);
     break;
   case 17: 
-    return TkTeBank->getCovmatrix1(te);
+    return Tk_Te_Bank::Instance().getCovmatrix1(te);
     break;
   case 18: 
-    return TkTeBank->getCovmatrix2(te);
+    return Tk_Te_Bank::Instance().getCovmatrix2(te);
     break;
   case 19: 
-    return TkTeBank->getCovmatrix3(te);
+    return Tk_Te_Bank::Instance().getCovmatrix3(te);
     break;
   case 20: 
-    return TkTeBank->getCovmatrix4(te);
+    return Tk_Te_Bank::Instance().getCovmatrix4(te);
     break;
   case 21: 
-    return TkTeBank->getCovmatrix5(te);
+    return Tk_Te_Bank::Instance().getCovmatrix5(te);
     break;
   case 22: 
-    return TkTeBank->getCovmatrix6(te);
+    return Tk_Te_Bank::Instance().getCovmatrix6(te);
     break;
   case 23: 
-    return TkTeBank->getCovmatrix7(te);
+    return Tk_Te_Bank::Instance().getCovmatrix7(te);
     break;
   case 24: 
-    return TkTeBank->getCovmatrix8(te);
+    return Tk_Te_Bank::Instance().getCovmatrix8(te);
     break;
   case 25: 
-    return TkTeBank->getCovmatrix9(te);
+    return Tk_Te_Bank::Instance().getCovmatrix9(te);
     break;
   case 26: 
-    return TkTeBank->getCovmatrix10(te);
+    return Tk_Te_Bank::Instance().getCovmatrix10(te);
     break;
   case 27: 
-    return TkTeBank->getCovmatrix11(te);
+    return Tk_Te_Bank::Instance().getCovmatrix11(te);
     break;
   case 28: 
-    return TkTeBank->getCovmatrix12(te);
+    return Tk_Te_Bank::Instance().getCovmatrix12(te);
     break;
   case 29: 
-    return TkTeBank->getCovmatrix13(te);
+    return Tk_Te_Bank::Instance().getCovmatrix13(te);
     break;
   case 30: 
-    return TkTeBank->getCovmatrix14(te);
+    return Tk_Te_Bank::Instance().getCovmatrix14(te);
     break;
   case 31: 
-    return TkTeBank->getCovmatrix15(te);
+    return Tk_Te_Bank::Instance().getCovmatrix15(te);
     break;
   default: 
     throw runtime_error("te attribute not valid");
   } 
 }
+FCALLSCFUN2(FLOAT,rreadtktecpp,RREADTKTECPP,rreadtktecpp, INT, INT)
 
 int ireadtktecpp(int attribute, int te)
 {
 
   te = te - 1;
 
-  if(te>TkTeBank->size()) return 0;
+  if(te>Tk_Te_Bank::Instance().size()) return 0;
 
   switch (attribute) {
   case 1: 
-    return (int)TkTeBank->getSubdetector_ID(te);
+    return (int)Tk_Te_Bank::Instance().getSubdetector_ID(te);
     break;
   case 2: 
-    return (int)TkTeBank->getSubmodule(te);
+    return (int)Tk_Te_Bank::Instance().getSubmodule(te);
      break;
   case 3: 
-    return (int)TkTeBank->getUnused(te);
+    return (int)Tk_Te_Bank::Instance().getUnused(te);
     break;
   case 4: 
-    return (int)TkTeBank->getMeasurement_code(te);
+    return (int)Tk_Te_Bank::Instance().getMeasurement_code(te);
     break;
   case 5: 
-    return (int)TkTeBank->getPointer_to_end_of_TE(te);
+    return (int)Tk_Te_Bank::Instance().getPointer_to_end_of_TE(te);
     break;
   case 6: 
-    return (int)TkTeBank->getCharge(te);
+    return (int)Tk_Te_Bank::Instance().getCharge(te);
     break;
   case 7: 
-    return (int)TkTeBank->getNdf(te);
+    return (int)Tk_Te_Bank::Instance().getNdf(te);
     break;
   case 8: 
-    return (int)TkTeBank->getChi2(te);
+    return (int)Tk_Te_Bank::Instance().getChi2(te);
     break;
   case 9: 
-    return (int)TkTeBank->getLength(te);
+    return (int)Tk_Te_Bank::Instance().getLength(te);
     break;
   case 10: 
-    return (int)TkTeBank->getCoord1_of_ref_point(te);
+    return (int)Tk_Te_Bank::Instance().getCoord1_of_ref_point(te);
     break;
   case 11: 
-    return (int)TkTeBank->getCoord2_of_ref_point(te);
+    return (int)Tk_Te_Bank::Instance().getCoord2_of_ref_point(te);
     break;
   case 12: 
-    return (int)TkTeBank->getCoord3_of_ref_point(te);
+    return (int)Tk_Te_Bank::Instance().getCoord3_of_ref_point(te);
     break;
   case 13: 
-    return (int)TkTeBank->getTheta(te);
+    return (int)Tk_Te_Bank::Instance().getTheta(te);
     break;
   case 14: 
-    return (int)TkTeBank->getPhi(te);
+    return (int)Tk_Te_Bank::Instance().getPhi(te);
     break;
   case 15: 
-    return (int)TkTeBank->getInvp(te);
+    return (int)Tk_Te_Bank::Instance().getInvp(te);
     break;
   case 16: 
-    return (int)TkTeBank->getDe_dx(te);
+    return (int)Tk_Te_Bank::Instance().getDe_dx(te);
     break;
   case 17: 
-    return (int)TkTeBank->getCovmatrix1(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix1(te);
     break;
   case 18: 
-    return (int)TkTeBank->getCovmatrix2(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix2(te);
     break;
   case 19: 
-    return (int)TkTeBank->getCovmatrix3(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix3(te);
     break;
   case 20: 
-    return (int)TkTeBank->getCovmatrix4(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix4(te);
     break;
   case 21: 
-    return (int)TkTeBank->getCovmatrix5(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix5(te);
     break;
   case 22: 
-    return (int)TkTeBank->getCovmatrix6(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix6(te);
     break;
   case 23: 
-    return (int)TkTeBank->getCovmatrix7(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix7(te);
     break;
   case 24: 
-    return (int)TkTeBank->getCovmatrix8(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix8(te);
     break;
   case 25: 
-    return (int)TkTeBank->getCovmatrix9(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix9(te);
     break;
   case 26: 
-    return (int)TkTeBank->getCovmatrix10(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix10(te);
     break;
   case 27: 
-    return (int)TkTeBank->getCovmatrix11(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix11(te);
     break;
   case 28: 
-    return (int)TkTeBank->getCovmatrix12(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix12(te);
     break;
   case 29: 
-    return (int)TkTeBank->getCovmatrix13(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix13(te);
     break;
   case 30: 
-    return (int)TkTeBank->getCovmatrix14(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix14(te);
     break;
   case 31: 
-    return (int)TkTeBank->getCovmatrix15(te);
+    return (int)Tk_Te_Bank::Instance().getCovmatrix15(te);
     break;
   default: 
     throw runtime_error("te attribute not valid");
   } 
 }
+FCALLSCFUN2(INT,ireadtktecpp,IREADTKTECPP,ireadtktecpp, INT, INT)
 
 
 int writetktecpp(float value, int attribute, int te){
 
-  if(te>TkTeBank->size()) return 1;
+  if(te>Tk_Te_Bank::Instance().size()) return 1;
 
   te = te - 1;
 
   switch (attribute) {
   case 1: 
-    TkTeBank->setSubdetector_ID((int)value,te);
+    Tk_Te_Bank::Instance().setSubdetector_ID((int)value,te);
     return 0;
     break;
   case 2: 
-    TkTeBank->setSubmodule((int)value,te);
+    Tk_Te_Bank::Instance().setSubmodule((int)value,te);
     return 0;
     break;
   case 3: 
-    TkTeBank->setUnused((int)value,te);
+    Tk_Te_Bank::Instance().setUnused((int)value,te);
     return 0;
     break;
   case 4: 
-    TkTeBank->setMeasurement_code((int)value,te);
+    Tk_Te_Bank::Instance().setMeasurement_code((int)value,te);
     return 0;
     break;
   case 5: 
-    TkTeBank->setPointer_to_end_of_TE((int)value,te);
+    Tk_Te_Bank::Instance().setPointer_to_end_of_TE((int)value,te);
     return 0;
     break;
   case 6: 
-    TkTeBank->setCharge((int)value,te);
+    Tk_Te_Bank::Instance().setCharge((int)value,te);
     return 0;
     break;
   case 7: 
-    TkTeBank->setNdf((int)value,te);
+    Tk_Te_Bank::Instance().setNdf((int)value,te);
     return 0;
     break;
   case 8: 
-    TkTeBank->setChi2(value,te);
+    Tk_Te_Bank::Instance().setChi2(value,te);
     return 0;
     break;
   case 9: 
-    TkTeBank->setLength(value,te);
+    Tk_Te_Bank::Instance().setLength(value,te);
     return 0;
     break;
   case 10: 
-    TkTeBank->setCoord1_of_ref_point(value,te);
+    Tk_Te_Bank::Instance().setCoord1_of_ref_point(value,te);
     return 0;
     break;
   case 11: 
-    TkTeBank->setCoord2_of_ref_point(value,te);
+    Tk_Te_Bank::Instance().setCoord2_of_ref_point(value,te);
     return 0;
     break;
   case 12: 
-    TkTeBank->setCoord3_of_ref_point(value,te);
+    Tk_Te_Bank::Instance().setCoord3_of_ref_point(value,te);
     return 0;
     break;
   case 13: 
-    TkTeBank->setTheta(value,te);
+    Tk_Te_Bank::Instance().setTheta(value,te);
     return 0;
     break;
   case 14: 
-    TkTeBank->setPhi(value,te);
+    Tk_Te_Bank::Instance().setPhi(value,te);
     return 0;
     break;
   case 15: 
-    TkTeBank->setInvp(value,te);
+    Tk_Te_Bank::Instance().setInvp(value,te);
     return 0;
     break;
   case 16: 
-    TkTeBank->setDe_dx(value,te);
+    Tk_Te_Bank::Instance().setDe_dx(value,te);
     return 0;
     break;
   case 17: 
-    TkTeBank->setCovmatrix1(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix1(value,te);
     return 0;
     break;
   case 18: 
-    TkTeBank->setCovmatrix2(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix2(value,te);
     return 0;
     break;
   case 19: 
-    TkTeBank->setCovmatrix3(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix3(value,te);
     return 0;
     break; 
   case 20: 
-    TkTeBank->setCovmatrix4(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix4(value,te);
     return 0;
     break;
   case 21: 
-    TkTeBank->setCovmatrix5(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix5(value,te);
     return 0;
     break;
   case 22: 
-    TkTeBank->setCovmatrix6(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix6(value,te);
     return 0;
     break;
   case 23: 
-    TkTeBank->setCovmatrix7(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix7(value,te);
     return 0;
     break;
   case 24: 
-    TkTeBank->setCovmatrix8(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix8(value,te);
     return 0;
     break;
   case 25: 
-    TkTeBank->setCovmatrix9(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix9(value,te);
     return 0;
     break;
   case 26: 
-    TkTeBank->setCovmatrix10(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix10(value,te);
     return 0;
     break;
   case 27: 
-    TkTeBank->setCovmatrix11(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix11(value,te);
     return 0;
     break;
   case 28: 
-    TkTeBank->setCovmatrix12(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix12(value,te);
     return 0;
     break;
   case 29: 
-    TkTeBank->setCovmatrix13(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix13(value,te);
     return 0;
     break;
   case 30: 
-    TkTeBank->setCovmatrix14(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix14(value,te);
     return 0;
     break;
   case 31: 
-    TkTeBank->setCovmatrix15(value,te);
+    Tk_Te_Bank::Instance().setCovmatrix15(value,te);
     return 0;
     break;
   default: 
@@ -466,38 +461,40 @@ int writetktecpp(float value, int attribute, int te){
   } 
   
 }
+FCALLSCFUN3(INT,writetktecpp,WRITETKTECPP,writetktecpp, FLOAT, INT, INT)
 
 int addhittktecpp(int hit, int te) 
 {
   te = te - 1;
   hit = hit - 1;
 
-  TkTeBank->addHit(hit,te);
+  Tk_Te_Bank::Instance().addHit(hit,te);
   return 0;
 }
+FCALLSCFUN2(INT,addhittktecpp,ADDHITTKTECPP,addhittktecpp, INT, INT)
 
 int writetkitedatcpp(int value, int attribute, int te){
   te = te - 1;
   
   switch (attribute) {
   case 1: 
-    TkTeBank->setPosOfFirstHitInHitList(value,te);
+    Tk_Te_Bank::Instance().setPosOfFirstHitInHitList(value,te);
     return 0;
     break;
   case 2: 
-    TkTeBank->setNumOfHits(value,te);
+    Tk_Te_Bank::Instance().setNumOfHits(value,te);
     return 0;
     break;
   case 3: 
-    TkTeBank->setPointrToFirstExclusion(value,te);
+    Tk_Te_Bank::Instance().setPointrToFirstExclusion(value,te);
     return 0;
     break;
   case 4: 
-    TkTeBank->setNumOfExclusions(value,te);
+    Tk_Te_Bank::Instance().setNumOfExclusions(value,te);
     return 0;
     break;
   case 5: 
-    TkTeBank->setTrackNo(value,te);
+    Tk_Te_Bank::Instance().setTrackNo(value,te);
     return 0;
     break;
   default: 
@@ -506,29 +503,31 @@ int writetkitedatcpp(int value, int attribute, int te){
   } 
 
 }
+FCALLSCFUN3(INT,writetkitedatcpp,WRITETKITEDATCPP,writetkitedatcpp, INT, INT, INT)
+
 
 int readtkitedatcpp(int attribute, int te)
 {
 
   te = te - 1;
 
-  if(te>TkTeBank->size()) return 0;
+  if(te>Tk_Te_Bank::Instance().size()) return 0;
 
   switch (attribute) {
   case 1: 
-    return TkTeBank->getPosOfFirstHitInHitList(te);
+    return Tk_Te_Bank::Instance().getPosOfFirstHitInHitList(te);
     break;
   case 2: 
-    return TkTeBank->getNumOfHits(te);
+    return Tk_Te_Bank::Instance().getNumOfHits(te);
     break;
   case 3: 
-    return TkTeBank->getPointrToFirstExclusion(te);
+    return Tk_Te_Bank::Instance().getPointrToFirstExclusion(te);
     break;
   case 4: 
-    return TkTeBank->getNumOfExclusions(te);
+    return Tk_Te_Bank::Instance().getNumOfExclusions(te);
     break;
   case 5: 
-    return TkTeBank->gettrackNo(te);
+    return Tk_Te_Bank::Instance().gettrackNo(te);
     break;
   default:
     std::cout << "attribute = " << attribute << std::endl ;
@@ -537,3 +536,4 @@ int readtkitedatcpp(int attribute, int te)
   } 
 
 }
+FCALLSCFUN2(INT,readtkitedatcpp,READTKITEDATCPP,readtkitedatcpp, INT, INT)

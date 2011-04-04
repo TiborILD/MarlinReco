@@ -6,14 +6,34 @@
 #include<vector>
 #include <cfortran.h>
 
+// global functions needed for the F77/C++ interface
 
+int tkmktecpp(int subid,int submod,int unused,int MesrCode,int PnteTE,int Q,int ndf,float chi2,float L,float cord1,float cord2,float cord3,float theta,float phi,float invp,float dedx,float* cov);
+
+float rreadtktecpp(int a, int b); 
+
+int ireadtktecpp(int a, int b); 
+
+int writetktecpp(float c, int a, int b); 
+
+int addhittktecpp(int a, int b); 
+
+int writetkitedatcpp(int c, int a, int b);
+
+int readtkitedatcpp(int a, int b); 
 
 
 class Tk_Te_Bank
 {
 
  public:
-  Tk_Te_Bank() ;
+
+  static Tk_Te_Bank& Instance()
+  {
+    static Tk_Te_Bank singleton;
+    return singleton;
+  }
+
   ~Tk_Te_Bank() ;
   void clear();
   void add_te(int,int,int,int,int,int,int,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float,float) ; 
@@ -108,6 +128,10 @@ class Tk_Te_Bank
 
  private:
 
+  Tk_Te_Bank() {} ;
+  Tk_Te_Bank(const Tk_Te_Bank &);
+  Tk_Te_Bank & operator = (const Tk_Te_Bank &);
+
 struct tk_te 
 {
   int subdetector_ID ;
@@ -170,9 +194,6 @@ struct tk_itedat
  std::vector <tk_itedat> itedat_bank ;
 
 } ;
-
-// Global pointer to the Tk_Te_Bank structure which is defined in tktebank.cc 
-extern Tk_Te_Bank * TkTeBank ;
 
 
 #endif

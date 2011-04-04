@@ -13,7 +13,13 @@ class Tk_Hit_Bank
 {
 
  public:
-  Tk_Hit_Bank();
+
+  static Tk_Hit_Bank& Instance()
+  {
+    static Tk_Hit_Bank singleton;
+    return singleton;
+  }
+  
   ~Tk_Hit_Bank();
   void clear();
   void add_hit(float, float, float, float, int, int, int, int, int, float, float);
@@ -74,6 +80,12 @@ class Tk_Hit_Bank
 
  private:
 
+  Tk_Hit_Bank() {} ; 
+
+  Tk_Hit_Bank(const Tk_Hit_Bank &);
+  Tk_Hit_Bank & operator = (const Tk_Hit_Bank &);
+
+
 struct tk_hit 
 {
   float    x;
@@ -98,9 +110,6 @@ struct tk_hit
  std::map <const std::string , unsigned int> lastHitEntry;
 
 };
-
-// Global pointer to the Tk_Hit_Bank structure which is defined in Tk_Hit_Bank.cc 
-extern Tk_Hit_Bank * TkHitBank;
 
 
 #endif

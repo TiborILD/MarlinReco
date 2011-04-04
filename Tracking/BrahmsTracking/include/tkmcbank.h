@@ -10,7 +10,13 @@ class Tk_MC_Bank
 {
 
  public:
-  Tk_MC_Bank();
+
+  static Tk_MC_Bank& Instance()
+  {
+    static Tk_MC_Bank singleton;
+    return singleton;
+  }
+
   ~Tk_MC_Bank();
   void clear();
   // this class uses PTRTYPE which is defined in cpointer.h as of type long
@@ -44,6 +50,13 @@ class Tk_MC_Bank
 
  private:
 
+  Tk_MC_Bank() {} ;
+  
+  Tk_MC_Bank(const Tk_MC_Bank &);
+  Tk_MC_Bank & operator = (const Tk_MC_Bank &);
+
+
+
 struct tk_mc 
 {
   float    px;
@@ -63,9 +76,6 @@ struct tk_mc
 
 
 };
-
-// Global pointer to the Tk_MC_Bank structure which is defined in Tk_MC_Bank.cc 
-extern Tk_MC_Bank * TkMCBank;
 
 
 #endif

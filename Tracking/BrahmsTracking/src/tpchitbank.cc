@@ -7,15 +7,10 @@
 
 using namespace std;
 
-// Global pointer to the TPC_Hit_Bank structure
-TPC_Hit_Bank * TPCHitBank;
 
 // Declaration of Common Block used to store the number of hits in the hit bank defined in TPChitbank.h
 //CNTPC_DEF CNTPC;
 
-TPC_Hit_Bank::TPC_Hit_Bank()
-{
-}
 
 TPC_Hit_Bank::~TPC_Hit_Bank()
 {
@@ -59,78 +54,79 @@ void TPC_Hit_Bank::add_hit(float X, float Y, float Z, float E, int SubID, float 
 float readtpchitscpp(int attribute, int hit)
 {
 
-  if(hit>TPCHitBank->size()) return 0.;
+  if(hit>TPC_Hit_Bank::Instance().size()) return 0.;
 
   hit = hit - 1;
 
   switch (attribute) {
   case 1: 
-    return TPCHitBank->getX(hit);
+    return TPC_Hit_Bank::Instance().getX(hit);
     break;
   case 2: 
-    return TPCHitBank->getY(hit);
+    return TPC_Hit_Bank::Instance().getY(hit);
      break;
   case 3: 
-    return TPCHitBank->getZ(hit);
+    return TPC_Hit_Bank::Instance().getZ(hit);
     break;
   case 4: 
-    return TPCHitBank->getEnergy(hit);
+    return TPC_Hit_Bank::Instance().getEnergy(hit);
     break;
   case 5: 
-    return TPCHitBank->getSubdetectorID(hit);
+    return TPC_Hit_Bank::Instance().getSubdetectorID(hit);
     break;
   case 6: 
-    return TPCHitBank->getResolution1(hit);
+    return TPC_Hit_Bank::Instance().getResolution1(hit);
     break;
   case 7: 
-    return TPCHitBank->getResolution2(hit);
+    return TPC_Hit_Bank::Instance().getResolution2(hit);
     break;
   case 8: 
-    return TPCHitBank->getTrackID(hit);
+    return TPC_Hit_Bank::Instance().getTrackID(hit);
     break;
   default: 
     throw runtime_error("hit attribute not valid");
   } 
 }
+FCALLSCFUN2(FLOAT,readtpchitscpp,READTPCHITSCPP,readtpchitscpp, INT, INT)
 
 int writetpccpp(float value, int attribute, int hit)
 {
 
   hit = hit - 1;
 
-  if(hit>TPCHitBank->size()) return 1;
+  if(hit>TPC_Hit_Bank::Instance().size()) return 1;
 
   switch (attribute) {
   case 1: 
-    TPCHitBank->setX(value, hit);
+    TPC_Hit_Bank::Instance().setX(value, hit);
     return 0;
     break;
   case 2: 
-    TPCHitBank->setY(value, hit);
+    TPC_Hit_Bank::Instance().setY(value, hit);
     return 0;
     break;
   case 3: 
-    TPCHitBank->setZ(value, hit);
+    TPC_Hit_Bank::Instance().setZ(value, hit);
     return 0;
     break;
   case 4: 
-    TPCHitBank->setEnergy(value, hit);
+    TPC_Hit_Bank::Instance().setEnergy(value, hit);
     return 0;
     break;
   case 5: 
-    TPCHitBank->setSubdetectorID(((int)value),hit);
+    TPC_Hit_Bank::Instance().setSubdetectorID(((int)value),hit);
     return 0;
     break;
   case 6: 
-    TPCHitBank->setResolution1(value,hit);
+    TPC_Hit_Bank::Instance().setResolution1(value,hit);
     return 0;
     break;
   case 7: 
-    TPCHitBank->setResolution2(value,hit);
+    TPC_Hit_Bank::Instance().setResolution2(value,hit);
     return 0; 
     break;
   case 8: 
-    TPCHitBank->setTrackID(((int)value),hit);
+    TPC_Hit_Bank::Instance().setTrackID(((int)value),hit);
     return 0;
     break;
   default: 
@@ -138,3 +134,4 @@ int writetpccpp(float value, int attribute, int hit)
   } 
 
 }
+FCALLSCFUN3(INT,writetpccpp,WRITETPCCPP,writetpccpp, FLOAT, INT, INT)

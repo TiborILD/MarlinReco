@@ -11,10 +11,18 @@ using namespace std;
 // Global pointer to the Tk_Hit_Bank structure
 Tk_Hit_Bank * TkHitBank;
 
+// global functions needed for the F77/C++ interface
 
-Tk_Hit_Bank::Tk_Hit_Bank()
-{
-}
+int subdetfirsthitindex(string subdet);
+
+int numofsubdethits(string subdet);
+
+float rreadtkhitscpp(int a, int b); 
+
+int ireadtkhitscpp(int a, int b); 
+
+int writetkhitcpp(float c, int a, int b); 
+
 
 Tk_Hit_Bank::~Tk_Hit_Bank()
 {
@@ -64,177 +72,182 @@ void Tk_Hit_Bank::add_hit(float X, float Y, float Z, float E, int SubID,  int Tr
 
 int subdetfirsthitindex(string subdet)
 {
-  return TkHitBank->getFirstHitIndex( subdet )+1;
+  return Tk_Hit_Bank::Instance().getFirstHitIndex( subdet )+1;
 }
+FCALLSCFUN1(INT,subdetfirsthitindex,SUBDETFIRSTHITINDEX,subdetfirsthitindex, STRING)
 
 int numofsubdethits(string subdet)
 {
-  return TkHitBank->getNumOfSubDetHits( subdet );
+  return Tk_Hit_Bank::Instance().getNumOfSubDetHits( subdet );
 }
+FCALLSCFUN1(INT,numofsubdethits,NUMOFSUBDETHITS,numofsubdethits, STRING)
 
 float rreadtkhitscpp(int attribute, int hit)
 {
 
-  if(hit>TkHitBank->size()) return 0.;
+  if(hit>Tk_Hit_Bank::Instance().size()) return 0.;
 
   hit = hit - 1;
 
   switch (attribute) {
   case 1: 
-    //    std::cout << "getX = " << TkHitBank->getX(hit) << std::endl;
-    return TkHitBank->getX(hit);
+    //    std::cout << "getX = " << Tk_Hit_Bank::Instance().getX(hit) << std::endl;
+    return Tk_Hit_Bank::Instance().getX(hit);
     break;
   case 2: 
-    //    std::cout << "getY = " << TkHitBank->getY(hit) << std::endl;
-    return TkHitBank->getY(hit);
+    //    std::cout << "getY = " << Tk_Hit_Bank::Instance().getY(hit) << std::endl;
+    return Tk_Hit_Bank::Instance().getY(hit);
      break;
   case 3: 
-    //    std::cout << "getZ = " << TkHitBank->getZ(hit) << std::endl;
-    return TkHitBank->getZ(hit);
+    //    std::cout << "getZ = " << Tk_Hit_Bank::Instance().getZ(hit) << std::endl;
+    return Tk_Hit_Bank::Instance().getZ(hit);
     break;
   case 4: 
-    //    std::cout << "getEnergy = " << TkHitBank->getEnergy(hit) << std::endl;
-    return TkHitBank->getEnergy(hit);
+    //    std::cout << "getEnergy = " << Tk_Hit_Bank::Instance().getEnergy(hit) << std::endl;
+    return Tk_Hit_Bank::Instance().getEnergy(hit);
     break;
   case 5: 
-    //    std::cout << "getSubdetectorID = " << TkHitBank->getSubdetectorID(hit) << std::endl;
-    return TkHitBank->getSubdetectorID(hit)+0.5;
+    //    std::cout << "getSubdetectorID = " << Tk_Hit_Bank::Instance().getSubdetectorID(hit) << std::endl;
+    return Tk_Hit_Bank::Instance().getSubdetectorID(hit)+0.5;
     break;
   case 6: 
-    //    std::cout << "getTrackID = " << TkHitBank->getTrackID(hit)<< std::endl;
-    return TkHitBank->getTrackID(hit)+0.5;
+    //    std::cout << "getTrackID = " << Tk_Hit_Bank::Instance().getTrackID(hit)<< std::endl;
+    return Tk_Hit_Bank::Instance().getTrackID(hit)+0.5;
     break;
   case 7: 
-    //    std::cout << "getPntToFirstExclusion = " << TkHitBank->getPntToFirstExclusion(hit) << std::endl;
-    return TkHitBank->getPntToFirstExclusion(hit)+0.5;
+    //    std::cout << "getPntToFirstExclusion = " << Tk_Hit_Bank::Instance().getPntToFirstExclusion(hit) << std::endl;
+    return Tk_Hit_Bank::Instance().getPntToFirstExclusion(hit)+0.5;
     break;
   case 8: 
-    //    std::cout << "TkHitBank->getNExclusion = " << TkHitBank->getNExclusion(hit)<< std::endl;
-    return TkHitBank->getNExclusion(hit)+0.5;
+    //    std::cout << "Tk_Hit_Bank::Instance().getNExclusion = " << Tk_Hit_Bank::Instance().getNExclusion(hit)<< std::endl;
+    return Tk_Hit_Bank::Instance().getNExclusion(hit)+0.5;
     break;
   case 9: 
-    //    std::cout << "getResolutionCode = " << TkHitBank->getResolutionCode(hit) << std::endl;
-    return TkHitBank->getResolutionCode(hit)+0.5;
+    //    std::cout << "getResolutionCode = " << Tk_Hit_Bank::Instance().getResolutionCode(hit) << std::endl;
+    return Tk_Hit_Bank::Instance().getResolutionCode(hit)+0.5;
     break;
   case 10: 
-    //    std::cout << "getResolution1 = " << TkHitBank->getResolution1(hit)<< std::endl;
-    return TkHitBank->getResolution1(hit);
+    //    std::cout << "getResolution1 = " << Tk_Hit_Bank::Instance().getResolution1(hit)<< std::endl;
+    return Tk_Hit_Bank::Instance().getResolution1(hit);
     break;
   case 11: 
-    //    std::cout << "getResolution2 = " << TkHitBank->getResolution2(hit) << std::endl;
-    return TkHitBank->getResolution2(hit);
+    //    std::cout << "getResolution2 = " << Tk_Hit_Bank::Instance().getResolution2(hit) << std::endl;
+    return Tk_Hit_Bank::Instance().getResolution2(hit);
     break;
   default: 
     throw runtime_error("hit attribute not valid");
   } 
 }
+FCALLSCFUN2(FLOAT,rreadtkhitscpp,RREADTKHITSCPP,rreadtkhitscpp, INT, INT)
+
 int ireadtkhitscpp(int attribute, int hit)
 {
 
-  if(hit>TkHitBank->size()) return 0;
+  if(hit>Tk_Hit_Bank::Instance().size()) return 0;
 
   hit = hit - 1;
 
   switch (attribute) {
   case 1: 
-    //    std::cout << "getX = " << TkHitBank->getX(hit) << std::endl;
-    return (int)TkHitBank->getX(hit);
+    //    std::cout << "getX = " << Tk_Hit_Bank::Instance().getX(hit) << std::endl;
+    return (int)Tk_Hit_Bank::Instance().getX(hit);
     break;
   case 2: 
-    //    std::cout << "getY = " << TkHitBank->getY(hit) << std::endl;
-    return (int)TkHitBank->getY(hit);
+    //    std::cout << "getY = " << Tk_Hit_Bank::Instance().getY(hit) << std::endl;
+    return (int)Tk_Hit_Bank::Instance().getY(hit);
      break;
   case 3: 
-    //    std::cout << "getZ = " << TkHitBank->getZ(hit) << std::endl;
-    return (int)TkHitBank->getZ(hit);
+    //    std::cout << "getZ = " << Tk_Hit_Bank::Instance().getZ(hit) << std::endl;
+    return (int)Tk_Hit_Bank::Instance().getZ(hit);
     break;
   case 4: 
-    //    std::cout << "getEnergy = " << TkHitBank->getEnergy(hit) << std::endl;
-    return (int)TkHitBank->getEnergy(hit);
+    //    std::cout << "getEnergy = " << Tk_Hit_Bank::Instance().getEnergy(hit) << std::endl;
+    return (int)Tk_Hit_Bank::Instance().getEnergy(hit);
     break;
   case 5: 
-    //    std::cout << "getSubdetectorID = " << TkHitBank->getSubdetectorID(hit) << std::endl;
-    return (int)(TkHitBank->getSubdetectorID(hit));
+    //    std::cout << "getSubdetectorID = " << Tk_Hit_Bank::Instance().getSubdetectorID(hit) << std::endl;
+    return (int)(Tk_Hit_Bank::Instance().getSubdetectorID(hit));
     break;
   case 6: 
-    //    std::cout << "getTrackID = " << TkHitBank->getTrackID(hit)<< std::endl;
-    return (int)TkHitBank->getTrackID(hit);
+    //    std::cout << "getTrackID = " << Tk_Hit_Bank::Instance().getTrackID(hit)<< std::endl;
+    return (int)Tk_Hit_Bank::Instance().getTrackID(hit);
     break;
   case 7: 
-    //    std::cout << "getPntToFirstExclusion = " << TkHitBank->getPntToFirstExclusion(hit) << std::endl;
-    return (int)TkHitBank->getPntToFirstExclusion(hit);
+    //    std::cout << "getPntToFirstExclusion = " << Tk_Hit_Bank::Instance().getPntToFirstExclusion(hit) << std::endl;
+    return (int)Tk_Hit_Bank::Instance().getPntToFirstExclusion(hit);
     break;
   case 8: 
-    //    std::cout << "TkHitBank->getNExclusion = " << TkHitBank->getNExclusion(hit)<< std::endl;
-    return (int)TkHitBank->getNExclusion(hit);
+    //    std::cout << "Tk_Hit_Bank::Instance().getNExclusion = " << Tk_Hit_Bank::Instance().getNExclusion(hit)<< std::endl;
+    return (int)Tk_Hit_Bank::Instance().getNExclusion(hit);
     break;
   case 9: 
-    //    std::cout << "getResolutionCode = " << TkHitBank->getResolutionCode(hit) << std::endl;
-    return (int)TkHitBank->getResolutionCode(hit);
+    //    std::cout << "getResolutionCode = " << Tk_Hit_Bank::Instance().getResolutionCode(hit) << std::endl;
+    return (int)Tk_Hit_Bank::Instance().getResolutionCode(hit);
     break;
   case 10: 
-    //    std::cout << "getResolution1 = " << TkHitBank->getResolution1(hit)<< std::endl;
-    return (int)TkHitBank->getResolution1(hit);
+    //    std::cout << "getResolution1 = " << Tk_Hit_Bank::Instance().getResolution1(hit)<< std::endl;
+    return (int)Tk_Hit_Bank::Instance().getResolution1(hit);
     break;
   case 11: 
-    //    std::cout << "getResolution2 = " << TkHitBank->getResolution2(hit) << std::endl;
-    return (int)TkHitBank->getResolution2(hit);
+    //    std::cout << "getResolution2 = " << Tk_Hit_Bank::Instance().getResolution2(hit) << std::endl;
+    return (int)Tk_Hit_Bank::Instance().getResolution2(hit);
     break;
   default: 
     throw runtime_error("hit attribute not valid");
   } 
 }
+FCALLSCFUN2(INT,ireadtkhitscpp,IREADTKHITSCPP,ireadtkhitscpp, INT, INT)
 
 int writetkhitcpp(float value, int attribute, int hit)
 {
 
   hit = hit - 1;
 
-  if(hit>TkHitBank->size()) return 1;
+  if(hit>Tk_Hit_Bank::Instance().size()) return 1;
 
   switch (attribute) {
   case 1: 
-    TkHitBank->setX(value, hit);
+    Tk_Hit_Bank::Instance().setX(value, hit);
     return 0;
     break;
   case 2: 
-    TkHitBank->setY(value, hit);
+    Tk_Hit_Bank::Instance().setY(value, hit);
     return 0;
     break;
   case 3: 
-    TkHitBank->setZ(value, hit);
+    Tk_Hit_Bank::Instance().setZ(value, hit);
     return 0;
     break;
   case 4: 
-    TkHitBank->setEnergy(value, hit);
+    Tk_Hit_Bank::Instance().setEnergy(value, hit);
     return 0;
     break;
   case 5: 
-    TkHitBank->setSubdetectorID(((int)value),hit);
+    Tk_Hit_Bank::Instance().setSubdetectorID(((int)value),hit);
     return 0;
     break;
   case 6: 
-    TkHitBank->setTrackID(((int)value),hit);
+    Tk_Hit_Bank::Instance().setTrackID(((int)value),hit);
     return 0;
     break;
   case 7: 
-    TkHitBank->setPntToFirstExclusion(((int)value),hit);
+    Tk_Hit_Bank::Instance().setPntToFirstExclusion(((int)value),hit);
     return 0;
     break;
   case 8: 
-    TkHitBank->setNExclusion(((int)value),hit);
+    Tk_Hit_Bank::Instance().setNExclusion(((int)value),hit);
     return 0;
     break;
   case 9: 
-    TkHitBank->setResolutionCode(((int)value),hit);
+    Tk_Hit_Bank::Instance().setResolutionCode(((int)value),hit);
     return 0;
     break;
   case 10: 
-    TkHitBank->setResolution1(value,hit);
+    Tk_Hit_Bank::Instance().setResolution1(value,hit);
     return 0;
     break;
   case 11: 
-    TkHitBank->setResolution2(value,hit);
+    Tk_Hit_Bank::Instance().setResolution2(value,hit);
     return 0;
     break;
   default: 
@@ -242,4 +255,5 @@ int writetkhitcpp(float value, int attribute, int hit)
   } 
 
 }
+FCALLSCFUN3(INT,writetkhitcpp,WRITETKHITCPP,writetkhitcpp, FLOAT, INT, INT)
 

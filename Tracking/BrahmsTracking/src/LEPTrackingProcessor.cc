@@ -3,138 +3,6 @@
 ** This file is part of the MarlinReco Project.
 ** Forming part of the SubPackage: BrahmsTracking.
 **
-** For the latest version download from Web CVS:
-** www.blah.de
-**
-** $Id: LEPTrackingProcessor.cc,v 1.44 2008-11-13 10:18:17 aplin Exp $
-**
-** $Log: not supported by cvs2svn $
-** Revision 1.43  2008/07/18 11:00:54  aplin
-** corrected bug in the clear function of hitbanks
-**
-** Revision 1.42  2008/07/17 16:53:30  aplin
-** added steering parameter AlwaysRunCurlKiller which allows the CurlKiller functionality to be usedfor every event, not just those for whom the F77 tracking code fails
-**
-** Revision 1.41  2008/07/16 08:39:46  aplin
-** made subdetectorHitNumbers for TPCTracks consistent with FullLDCTracking which has implemented ETD and SET hits
-**
-** Revision 1.40  2008/07/02 11:09:27  aplin
-** fixed bug where the wrong TPCHit collection was used to created relations to Tracks
-**
-** Revision 1.39  2008/07/02 09:01:23  aplin
-** Changed default binning for the removal of hits alla CurlKiller
-**
-** Fixed bug which caused the hit removal to start at the second level of aggression
-**
-** Revision 1.38  2008/07/01 15:08:31  aplin
-** An Error message has been added as an event parameter for the case where the PATREC fails due to too many links.
-**
-** Only one track collection is now produced, namely "TPCTracks", as LEPTracking now only produces hits from the TPC. FullLDCTracking is now responsible for creating tracks including hits from the silicon detectors.
-**
-** Revision 1.37  2008/07/01 10:34:39  aplin
-** The functionality of CurlKiller has been moved into LEPTracking. It is
-** now operated at increasing levels of aggression in order to try to
-** save the event from not not having ANY TPC Tracks, due to too many links in
-** trslnk.
-**
-** As a first try, all hits are passed to the PATREC. If this fails three
-** more attempts are made where the size of the bins used to find high
-** levels of multiplicity in r-phi are increased by factors of 2, 3 and
-** finally 4. If this still fails an error message is printed warning
-** that NO TPC Tracks will be reconstructed for this event.
-**
-** The verbosity of LEPTracking is now controlled completely via
-** streamlog on the C++ side, and via flags set in tkinit on the F77
-** side.
-**
-** Revision 1.36  2008/06/27 15:32:27  aplin
-** corrected conversion of covariance matrix, and made more use of streamlog
-**
-** Revision 1.35  2008/06/26 09:35:56  aplin
-**
-** A clean up has been made of the arrays that hold the TE's/Hits for
-** track fitting. An effort has been made to ensure that both the arrays
-** are big enough to hold the required number of hits, and that the arrays
-** are all of the same dimensions between calling routines.
-**
-** All verbose output, except for the case where the tracking is dropped
-** for a complete event, has now been hidden behind debug IF
-** Statements. The level of verbosity can be controlled via the variables
-** TPCDBG, TKSTDBG, FSFDBG and IDEB  in tkinit.F
-**
-** Revision 1.34  2008/04/17 14:36:29  aplin
-** reduced printoutlevel in f77 and moved cout to debug streamlog_out for C++
-**
-** Revision 1.33  2008/04/10 21:49:14  aplin
-** Corrected covariance matrix definition. Added extra Expert Histos in TPCDigi. Removed VTX and SIT Hits from LEPTracking
-**
-** Revision 1.32  2008/03/11 15:19:18  engels
-** removed spurious dev code (S. Aplin)
-**
-** Revision 1.31  2008/02/14 15:34:11  aplin
-** removed spurious dev code
-**
-** Revision 1.30  2008/02/14 14:43:30  aplin
-** removed spurious dev code
-**
-** Revision 1.29  2008/02/13 10:23:30  aplin
-** fixed mm->cm conversion bug
-**
-** Revision 1.28  2008/02/11 16:54:51  aplin
-** ntroduced smearing which depends on the parameterisation supplied by the LC-TPC group.
-** It is parameterised in phi and theta. Not yet in z.
-**
-** The Covariance matrix corrected so that it is set for XYZ and not r-phi as previously. The corresponding conversion back to r-phi has been set in LEPTracking and FullLDCTracking.
-**
-** Revision 1.26  2007/09/13 07:39:04  rasp
-** Updated version of the LEPTracking processor. For each
-** digitized TPC hit spatial resolutions are accessed via
-** call to the TrackerHit::getCovMatrix method.
-**
-** Revision 1.24  2007/09/05 09:47:29  rasp
-** Updated version
-**
-** Revision 1.22  2006/10/17 12:34:19  gaede
-** replaced registerProcessorParameter with registerInput/OutputCollection
-**
-** Revision 1.21  2006/06/28 15:29:04  aplin
-** The B-Field is now variable for LEPTracking via the gear xml file. The B-Field is specified in the TPCParameters as follows: <parameter name="tpcBField" type="double"> 4.0  </parameter>
-**
-** The value is passed internaly to the F77 code via the same function which passes the TPC geometry i.e. gettpcgeom(float* innerrad, float* outerrad, int* npadrows, float* maxdrift, float* tpcpixz, float* ionpoten, float* tpcrpres, float* tpczres, float* tpcbfield). It is set in setmat.F. tpcgeom.F had to be modified as it also uses gettpcgeom, although it does not make use of the B-Field.
-**
-** Revision 1.22   gaede
-** added registerInput/OutputCollection for Marlin -c
-** 
-** Revision 1.20  2006/05/28 15:22:15  owendt
-** changed text for the explanation of a processor parameter
-**
-** Revision 1.19  2006/04/27 13:07:43  samson
-** Fix minor syntax errors to achieve compatibility with gcc4
-**
-** Revision 1.18  2006/02/09 18:00:41  owendt
-** removed cout statements for debugging
-**
-** Revision 1.17  2006/02/03 15:09:11  owendt
-** i) Corrected bug in calculation of weights, relocated brace.
-** ii) Weights are now calculated as the percentage of hits that a given MC particle contributes to the reconstructed track's hit collection.
-**
-** Revision 1.16  2005/12/06 15:26:23  aplin
-** corrected erroneous definition of MC Track Relation weight
-**
-** Revision 1.15  2005/11/03 15:16:14  aplin
-** Added the Trackstring creation and the biulding of full Track candiates (TK's) which have passed the Delphi Ambiguity resolver fxambi. The material description of the vtx detector, as for the TPC, is hard coded in setmat. Presently the VTX and SIT resolutions are hard coded in LEPTrackingProcessor. The debug output has been reduced and can be controlled via TKSTDBG etc. in tkinit.F. delsolve contains the delphi ambuguity resolver written in C and is contained in the directory named C. The Tk's are written back into the C++ side in tktrev. The corresponding Tk bank structure analogous to the TE bank structure has been added in tktkbank whilst the access wrapper functions are contained in LEPTracking.
-**
-** Revision 1.13  2005/08/08 07:09:13  aplin
-** Made f77 tracking code use GEAR to define the geomtery of the TPC. LTPDRO now defines the maximum number of rows is used to define the size of arrays, this is limited to 224 due the use of 7 '32 bit' bit registers in trkfnd.F increased, though at present it is not likely that anybody would want more. The number of TPC padrows is defined at run time by NRTPC which should of course not exceed LTPDRO, although this is checked and the programe exits with a verbose error message. A wrapper function gettpcgeom is used to pass the GEAR TPC parameters from C++ to f77. MarlinUtil/include/marlin_tpcgeom.h have MarlinUtil/src/marlin_tpcgeom.cc consequently been removed as they are no longer needed.
-**
-** Revision 1.12  2005/08/04 12:54:51  aplin
-** *** empty log message ***
-**
-** Revision 1.11  2005/08/03 21:31:09  aplin
-** tk*bank structures initialisation move here from BrahmsInitProcessor and BrahmEndProcessor
-**
-** Revision 1.10  2005/08/03 19:05:24  aplin
-** corrected erroneous function declaration of tkmktecpp, by using float * instead of numerous floats and added output collection names as steering parametes
 ** 
 */
 #include "LEPTrackingProcessor.h"
@@ -170,6 +38,7 @@
 #include"tktebank.h"
 #include"tktkbank.h"
 #include"tkmcbank.h"
+
 //#include"marlin_tpcgeom.h"
 #include"constants.h"
 
@@ -182,8 +51,6 @@
 #include <gear/BField.h>
 //
 
-
-
 PROTOCCALLSFFUN0(INT,TKTREV,tktrev)
 #define TKTREV() CCALLSFFUN0(TKTREV,tktrev)
 
@@ -195,70 +62,6 @@ using namespace lcio ;
 using namespace marlin ;
 using namespace constants ;
 using namespace std ; 
-
-int subdetfirsthitindex(string subdet);
-
-FCALLSCFUN1(INT,subdetfirsthitindex,SUBDETFIRSTHITINDEX,subdetfirsthitindex, STRING)
-
-  int numofsubdethits(string subdet);
-
-FCALLSCFUN1(INT,numofsubdethits,NUMOFSUBDETHITS,numofsubdethits, STRING)
-
-  int writetpccpp(float c, int a, int b); 
-
-FCALLSCFUN3(INT,writetpccpp,WRITETPCCPP,writetpccpp, FLOAT, INT, INT)
-      
-  float readtpchitscpp(int a, int b); 
-
-FCALLSCFUN2(FLOAT,readtpchitscpp,READTPCHITSCPP,readtpchitscpp, INT, INT)
-
-  int writetkhitcpp(float c, int a, int b); 
-
-FCALLSCFUN3(INT,writetkhitcpp,WRITETKHITCPP,writetkhitcpp, FLOAT, INT, INT)
-
-  int ireadtkhitscpp(int a, int b); 
-
-FCALLSCFUN2(INT,ireadtkhitscpp,IREADTKHITSCPP,ireadtkhitscpp, INT, INT)
-
-  float rreadtkhitscpp(int a, int b); 
-
-FCALLSCFUN2(FLOAT,rreadtkhitscpp,RREADTKHITSCPP,rreadtkhitscpp, INT, INT)
-
-
-
-  int writetktecpp(float c, int a, int b); 
-
-FCALLSCFUN3(INT,writetktecpp,WRITETKTECPP,writetktecpp, FLOAT, INT, INT)
-
-
-  float rreadtktecpp(int a, int b); 
-
-FCALLSCFUN2(FLOAT,rreadtktecpp,RREADTKTECPP,rreadtktecpp, INT, INT)
-
-
-  int ireadtktecpp(int a, int b); 
-
-FCALLSCFUN2(INT,ireadtktecpp,IREADTKTECPP,ireadtktecpp, INT, INT)
-
-
-int tkmktecpp(int subid,int submod,int unused,int MesrCode,int PnteTE,int Q,int ndf,float chi2,float L,float cord1,float cord2,float cord3,float theta,float phi,float invp,float dedx,float* cov);
-
-FCALLSCFUN17(INT,tkmktecpp,TKMKTECPP,tkmktecpp, INT , INT ,INT ,INT ,INT ,INT ,INT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOAT ,FLOATV)
-
-
-int addhittktecpp(int a, int b); 
-
-FCALLSCFUN2(INT,addhittktecpp,ADDHITTKTECPP,addhittktecpp, INT, INT)
-
-
-int readtkitedatcpp(int a, int b); 
-
-FCALLSCFUN2(INT,readtkitedatcpp,READTKITEDATCPP,readtkitedatcpp, INT, INT)
-
-
-int writetkitedatcpp(int c, int a, int b);
-
-FCALLSCFUN3(INT,writetkitedatcpp,WRITETKITEDATCPP,writetkitedatcpp, INT, INT, INT)
 
 
   // definition of gettpcgeom done here it just sends the geomtertry into to tpcgeom.F
@@ -291,8 +94,6 @@ int gettpcgeom(float* innerrad, float* outerrad, int* npadrows,
 
 FCALLSCFUN8(INT,gettpcgeom,GETTPCGEOM,gettpcgeom, PFLOAT, PFLOAT, PINT, 
             PFLOAT, PFLOAT, PFLOAT, PFLOAT, PFLOAT )
-
-
 
 
   // end of cfortran.h definitions
@@ -431,7 +232,8 @@ void LEPTrackingProcessor::init() {
     fTPCXY      = new TH2F("fTPCXY",   "Cut TPC xy profile",1000, -2000., 2500., 1000, -2000., 2000.);
   }
 
-  
+
+
 }
 
 void LEPTrackingProcessor::processRunHeader( LCRunHeader* run) { 
@@ -458,14 +260,10 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
 
   firstEvent = false ;
 
-
-  // create bank structure
-  TkMCBank = new Tk_MC_Bank;
-  TPCHitBank = new TPC_Hit_Bank;  
-  TkHitBank = new Tk_Hit_Bank;  
-  TkTeBank = new Tk_Te_Bank;  
-  TkTkBank = new Tk_Tk_Bank;  
-
+  Tk_MC_Bank::Instance().clear();
+  Tk_Hit_Bank::Instance().clear();
+  Tk_Te_Bank::Instance().clear();
+  Tk_Tk_Bank::Instance().clear();
 
   LCCollection* tpcTHcol = 0 ;
 
@@ -602,9 +400,9 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
           _usedCol = new LCCollectionVec( LCIO::TRACKERHIT ) ;
           _usedCol->setSubset() ; 
           _goodHits.clear();          
-          TkMCBank->clear();
-          TkTeBank->clear();
-          TkTkBank->clear();
+          Tk_MC_Bank::Instance().clear();
+          Tk_Te_Bank::Instance().clear();
+          Tk_Tk_Bank::Instance().clear();
           
           selectTPCHits(tpcTHcol, _usedCol, _droppedCol, _binHeight*(i),_binWidth*(i),zmin,zmax);
           
@@ -646,9 +444,9 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
    
       streamlog_out(WARNING) << "For Event:" << _nEvt << " pass " << ipass << " z = " << zmin << " - " << zmax << " TKTREV return:" << errTKTREV << endl;
 
-      streamlog_out(WARNING) << "number of TE's = " << TkTeBank->size() << endl ;
+      streamlog_out(WARNING) << "number of TE's = " << Tk_Te_Bank::Instance().size() << endl ;
 
-      streamlog_out(WARNING) << "number of TK's = " << TkTkBank->size() << endl ;
+      streamlog_out(WARNING) << "number of TK's = " << Tk_Tk_Bank::Instance().size() << endl ;
 
 
       // copy temporary hit arrays into out put collection
@@ -665,14 +463,15 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
       for(unsigned int i=0;i<_goodHits.size();i++)_savedGoodHits.push_back(_goodHits[i]);
 
 
-      for(int te=0; te<TkTeBank->size();te++){
-        if( TkTeBank->getSubdetector_ID(te)==500 ) {
+      for(int te=0; te<Tk_Te_Bank::Instance().size();te++){
+        if( Tk_Te_Bank::Instance().getSubdetector_ID(te)==500 ) {
           TrackImpl* tpcTrack = new TrackImpl ; 
-          const double ref_r = 10.*TkTeBank->getCoord1_of_ref_point(te);
-          const double ref_phi =TkTeBank->getCoord2_of_ref_point(te)/TkTeBank->getCoord1_of_ref_point(te);
-          const double ref_z = 10.*TkTeBank->getCoord3_of_ref_point(te);
+          const double ref_r = 10.*Tk_Te_Bank::Instance().getCoord1_of_ref_point(te);
+          const double ref_phi =Tk_Te_Bank::Instance().getCoord2_of_ref_point(te)/Tk_Te_Bank::Instance().getCoord1_of_ref_point(te);
+          const double ref_z = 10.*Tk_Te_Bank::Instance().getCoord3_of_ref_point(te);
 
-          //         cout << "ref_r = " << ref_r << endl;
+
+
           //         cout << "ref_phi = " << ref_phi << endl;
           
           // transformation from 1/p to 1/R = consb * (1/p) / sin(theta)
@@ -685,8 +484,8 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
           // tan lambda and curvature remain unchanged as the track is only extrapolated
           // set negative as 1/p is signed with geometric curvature clockwise negative
 
-          const double omega = ( -consb*TkTeBank->getInvp(te) )/ sin( TkTeBank->getTheta(te) ) ;
-          const double tanLambda = tan( (twopi/4.) - TkTeBank->getTheta(te) ) ;
+          const double omega = ( -consb*Tk_Te_Bank::Instance().getInvp(te) )/ sin( Tk_Te_Bank::Instance().getTheta(te) ) ;
+          const double tanLambda = tan( (twopi/4.) - Tk_Te_Bank::Instance().getTheta(te) ) ;
 
           tpcTrack->setOmega( omega ) ;
           tpcTrack->setTanLambda( tanLambda ) ;      
@@ -703,8 +502,8 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
           ////////////////////////////////
           
           // center of circumference
-          const double xc = xref + trkRadius * sin( TkTeBank->getPhi(te) ) ;
-          const double yc = yref - trkRadius * cos( TkTeBank->getPhi(te) ) ;
+          const double xc = xref + trkRadius * sin( Tk_Te_Bank::Instance().getPhi(te) ) ;
+          const double yc = yref - trkRadius * cos( Tk_Te_Bank::Instance().getPhi(te) ) ;
         
           const double xc2 = xc * xc ; 
           const double yc2 = yc * yc ;
@@ -754,15 +553,15 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
           tpcTrack->setZ0( z0 ) ;       
           tpcTrack->setReferencePoint( refPoint ) ;
           tpcTrack->setIsReferencePointPCA(true) ;
-          tpcTrack->setChi2(TkTeBank->getChi2(te)) ;
-          tpcTrack->setNdf(TkTeBank->getNdf(te)) ;
-          tpcTrack->setdEdx(TkTeBank->getDe_dx(te)) ;
+          tpcTrack->setChi2(Tk_Te_Bank::Instance().getChi2(te)) ;
+          tpcTrack->setNdf(Tk_Te_Bank::Instance().getNdf(te)) ;
+          tpcTrack->setdEdx(Tk_Te_Bank::Instance().getDe_dx(te)) ;
           
           const vector <int> * hits ;
           vector<MCParticle*> mcPointers ;
           vector<int> mcHits ;
 
-          hits = TkTeBank->getHitlist(te) ;
+          hits = Tk_Te_Bank::Instance().getHitlist(te) ;
 
           //std::cout << "the number of the hits on TE = " << hits->size() << std::endl;
           
@@ -834,20 +633,20 @@ void LEPTrackingProcessor::processEvent( LCEvent * evt ) {
           
         }
       }
-      TkMCBank->clear();
-      TkHitBank->clear();
-      TPCHitBank->clear();
-      TkTeBank->clear();
-      TkTkBank->clear();
+      Tk_MC_Bank::Instance().clear();
+      Tk_Hit_Bank::Instance().clear();
+      TPC_Hit_Bank::Instance().clear();
+      Tk_Te_Bank::Instance().clear();
+      Tk_Tk_Bank::Instance().clear();
 
     }
-    delete TkMCBank;
-    delete TPCHitBank;
-    delete TkHitBank;
-    delete TkTeBank;
-    delete TkTkBank;
-    TkTkBank = NULL;
-  
+
+    Tk_MC_Bank::Instance().clear();
+    Tk_Hit_Bank::Instance().clear();
+    TPC_Hit_Bank::Instance().clear();
+    Tk_Te_Bank::Instance().clear();
+    Tk_Tk_Bank::Instance().clear();
+
     evt->addCollection( _tpcTrackVec , _colNameTPCTracks) ;
     evt->addCollection( _tpclcRelVec , _colNameMCTPCTracksRel) ;
  
@@ -1018,10 +817,10 @@ void LEPTrackingProcessor::selectTPCHits(LCCollection* tpcTHcol, LCCollectionVec
 
 void LEPTrackingProcessor::FillTPCHitBanks(){
 
-  TPCHitBank->clear();
-  TkHitBank->clear();
+  TPC_Hit_Bank::Instance().clear();
+  Tk_Hit_Bank::Instance().clear();
 
-  TkHitBank->setFirstHitIndex("TPC");
+  Tk_Hit_Bank::Instance().setFirstHitIndex("TPC");
 
   for(int i=0; i< _goodHits.size(); ++i){
       
@@ -1094,18 +893,18 @@ void LEPTrackingProcessor::FillTPCHitBanks(){
       fTPCXY->Fill(pos[0],pos[1]);
     }
 
-    TkHitBank->add_hit(x,y,z,edep,subid,mctrack,0,0,icode,tpcRPhiRes,tpcZRes);
+    Tk_Hit_Bank::Instance().add_hit(x,y,z,edep,subid,mctrack,0,0,icode,tpcRPhiRes,tpcZRes);
     
-    TPCHitBank->add_hit(x,y,z,edep,subid,tpcRPhiRes,tpcZRes,mctrack);
+    TPC_Hit_Bank::Instance().add_hit(x,y,z,edep,subid,tpcRPhiRes,tpcZRes,mctrack);
     
   }
   
-  TkHitBank->setLastHitIndex("TPC"); 
+  Tk_Hit_Bank::Instance().setLastHitIndex("TPC"); 
 
-  if(TkHitBank->getNumOfSubDetHits("TPC") > 0) {
-    int tpcsubid = TkHitBank->getSubdetectorID(TkHitBank->getFirstHitIndex("TPC")) ;
+  if(Tk_Hit_Bank::Instance().getNumOfSubDetHits("TPC") > 0) {
+    int tpcsubid = Tk_Hit_Bank::Instance().getSubdetectorID(Tk_Hit_Bank::Instance().getFirstHitIndex("TPC")) ;
     streamlog_out(WARNING) << "the first hit for the TPC has id " << tpcsubid << endl ;
-    tpcsubid = TkHitBank->getSubdetectorID(TkHitBank->getLastHitIndex("TPC")) ;
+    tpcsubid = Tk_Hit_Bank::Instance().getSubdetectorID(Tk_Hit_Bank::Instance().getLastHitIndex("TPC")) ;
     streamlog_out(WARNING) << "the last hit for the TPC has id " << tpcsubid << endl ;
   }
 }
