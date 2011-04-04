@@ -171,7 +171,7 @@ C.....max number of hits per track
 #include "include/tkfunc.inc"
 
 C  SJA: set the debug flags 
-      IDEB = 0
+c      IDEB = 0
       FSFDBG = IDEB
       TKSTDBG = IDEB
       DELADBG = IDEB
