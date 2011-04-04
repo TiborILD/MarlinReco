@@ -113,6 +113,8 @@ C#include "include/gcbank.inc"
 C#include "include/brtime.inc"
 #include "include/tknoisepar.inc"
 #include "include/fkddes.inc"
+#include "include/fkcons.inc"
+
       INTEGER I,J,K,L,IERROR,IKINE, try, ierr
       REAL TSTART,TEND
 
@@ -156,8 +158,43 @@ C.....Initalise TKTREV as error this will only be set to 0 if TKTREV exits norma
       IERROR = 0
 
       CALL TKINIT
-      CALL VTXGEOM
+C      CALL VTXGEOM
       CALL TPCGEOM
+
+      DO I=1,NEXS
+         IF (ITEXTS(I).EQ.0) THEN
+            TYPX(I) = 'CYLI'
+         ELSE
+            TYPX(I) = 'PLAN'
+         ENDIF
+      ENDDO
+      
+      
+      IF (TKSTDBG.GT.0) then
+         print*
+         print '('' material cylinders for track fit'')'
+         print '('' Nr   radius    z-min    z-max    X0     Eloss'')'
+         do i=1,ncmat
+            print '(i3,3f10.2,2f8.5)',
+     $           i,rcmat(i),zcmin(i),zcmax(i),xrlc(i),xelosc(i)
+         enddo
+         print*
+         print '('' material planes for track fit'')'
+         print '('' Nr      z      r-min    r-max    X0     Eloss'')'
+         do i=1,npmat
+            print '(i3,3f10.2,2f8.5)',
+     $           i,zpmat(i),rpmin(i),rpmax(i),xrlp(i),xelosp(i)
+         enddo
+      endif
+*                                    chisquare probability cut values, |
+*                                    indices = (forward, barrel):      |
+*                                    total chisquare of the track fit  |
+      PRTOT(0) = 0.0001
+      PRTOT(1) = 0.0001
+*                                    smoothed chisquare (outlier test) |
+      PRSMO(0) = 0.0001
+      PRSMO(1) = 0.0001
+*
 
 CCC FIXME: SJA: the database of materials is set up in SETMAT for the TPC only all other systems are
 CCC             commented out.

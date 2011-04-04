@@ -120,8 +120,8 @@ c#include "flag.inc"
 
 
 C CALL wrapper function to get tpc parameters from GEAR including the BFIELD
-      TRY = gettpcgeom(INNERRAD, OUTERRAD, NPADROWS, MAXDRIFT, TPCPIXZ, 
-     +     IONPOTEN, TPCRPRES, TPCZRES, TPCBFIELD)
+c      TRY = gettpcgeom(INNERRAD, OUTERRAD, NPADROWS, MAXDRIFT, TPCPIXZ, 
+c     +     IONPOTEN, TPCRPRES, TPCZRES, TPCBFIELD)
 
 *
 *     magnetic field
@@ -129,42 +129,42 @@ C CALL wrapper function to get tpc parameters from GEAR including the BFIELD
 
 CSJA FIXME: include here as a temporary solution all the geometric information for the VTX and beampipe.
 
-      MKTHMAX=83.1
+c      MKTHMAX=83.1
 
 C all dimensions are in cm
 
 C Thickness of different parts
-      BPT0 = 0.05
-      BPT1 = 0.1
-      BPT2 = 0.1
-      BPT3 = 0.1
-      BPT4 = 0.1
-      BPT5 = 0.1
+c      BPT0 = 0.05
+c      BPT1 = 0.1
+c      BPT2 = 0.1
+c      BPT3 = 0.1
+c      BPT4 = 0.1
+c      BPT5 = 0.1
 C Outer length:
-      BPPZ=800.
+c      BPPZ=800.
 
 C Beampipe dimensions for PIXEL vertex detector
 C (Based on code supplied by M. Battaglia):
 
 C Central part:
 c Inner Radius:
-      BPP0(1)=1.4
+c      BPP0(1)=1.4
 c Outer Radius
-      BPP0(2)=1.4 + BPT0
+c      BPP0(2)=1.4 + BPT0
 c half length
-      BPP0(3)=12.5
+c      BPP0(3)=12.5
 
 C Conical parts:
 c Half length
-      BPP1(1)= 31.25
+c      BPP1(1)= 31.25
 c first inner radius
-      BPP1(2)=BPP0(1)
+c      BPP1(2)=BPP0(1)
 c first outer radius
-      BPP1(3)=BPP1(2) + BPT1
+c      BPP1(3)=BPP1(2) + BPT1
 c Second inner radius
-      BPP1(4)=3.5
+c      BPP1(4)=3.5
 c Second outer radius
-      BPP1(5)=BPP1(4) + BPT1
+c      BPP1(5)=BPP1(4) + BPT1
 
 C----------------------------------------------------------------------
 C Beampipe dimensions for CCD vertex detector:
@@ -179,23 +179,23 @@ C !!!! NEEDS CHECKING !!!!
 *        BPCT2=2.8E-3 *35.28
 *        BPCT3=2.8E-3 *35.28
 *        BPCT4=5.7E-3 *1.76
-      BPCT1 = BPT0
-      BPCT2 = BPT1
-      BPCT3 = BPT2
-      BPCT4 = BPT3
+c      BPCT1 = BPT0
+c      BPCT2 = BPT1
+c      BPCT3 = BPT2
+c      BPCT4 = BPT3
 
 C BP inner radii:
 
 c      IF ( CCDTYPE .EQ. 1 ) THEN
-        BPCINR1=1.4
-        BPCINR2=2.2
+c        BPCINR1=1.4
+c        BPCINR2=2.2
 c      ELSE IF ( CCDTYPE .EQ. 2 ) THEN
 c        BPCINR1 = 2.0
 c        BPCINR2 = 2.0
 c      END IF
 
-      BPCINR3=2.0
-      BPCINR3 = 2.2
+c      BPCINR3=2.0
+c      BPCINR3 = 2.2
 
 c      IF (ILAT.EQ.1) THEN
 c        BPCINZ4 = LTZ1-3.5
@@ -204,32 +204,32 @@ c        BPCINR4 = BPCINZ4 * TAN(MKTHMAX/1000.)
 c      END IF
 
 C Z Positions of CHANGES in radius
-      BPCINZ1=3.1
-      BPCINZ2=15.0
-      BPCINZ3=15.2
+c      BPCINZ1=3.1
+c      BPCINZ2=15.0
+c      BPCINZ3=15.2
 
 CCC       BPCINZ1 = 3.7
-      BPCINZ1 = 6.1
+c      BPCINZ1 = 6.1
 CCC      BPCINZ2 = 4.7
 C*kmo      BPCINZ2 = 7.2
-      BPCINZ2 = 17.2
-      BPCINZ3 = 17.2
+c      BPCINZ2 = 17.2
+c      BPCINZ3 = 17.2
 
 c      BPCINR2 = BPCINZ2* TAN(MKTHMAX/1000.)
-      BPCINZ3 = BPCINR3 / TAN(MKTHMAX/1000.)
+c      BPCINZ3 = BPCINR3 / TAN(MKTHMAX/1000.)
 
 C     from here on CCD and APS beam pipe are the same.
 
 
 csja call vxdgeom here to set up the vtx geometry so that material definitions for vtx can be set
-      call VXDGEOM
+c      call VXDGEOM
 
 CCC FIXME: SET BFIELD HERE
-      BFIELD =  TPCBFIELD*10.0
+c      BFIELD =  TPCBFIELD*10.0
 c      BFIELD = 40.0
 C      write(*,*) "BFIELD = ", BFIELD/10.0, " Tesla"
 
-      consb = bfield*fct
+c      consb = bfield*fct
 
 c      ncmat = 0
 c      npmat = 0
@@ -646,7 +646,7 @@ ccc      endif
 * SIT
 
 csja FIXME: the SIT geom will be called from here for now.
-         call sitgeom
+c         call sitgeom
 c$$$
 c$$$csja      if (lsit) then
 c$$$         do i=1,nsit
@@ -746,40 +746,40 @@ ccc         zrmin(nexs)   = rpmin(npmat)
 ccc         zrmax(nexs)   = rpmax(npmat)
 ccc      endif
 
-         DO I=1,NEXS
-            IF (ITEXTS(I).EQ.0) THEN
-               TYPX(I) = 'CYLI'
-            ELSE
-               TYPX(I) = 'PLAN'
-            ENDIF
-         ENDDO
-
-
-         IF (TKSTDBG.GT.0) then
-            print*
-            print '('' material cylinders for track fit'')'
-            print '('' Nr   radius    z-min    z-max    X0     Eloss'')'
-            do i=1,ncmat
-               print '(i3,3f10.2,2f8.5)',
-     $              i,rcmat(i),zcmin(i),zcmax(i),xrlc(i),xelosc(i)
-            enddo
-            print*
-            print '('' material planes for track fit'')'
-            print '('' Nr      z      r-min    r-max    X0     Eloss'')'
-            do i=1,npmat
-               print '(i3,3f10.2,2f8.5)',
-     $              i,zpmat(i),rpmin(i),rpmax(i),xrlp(i),xelosp(i)
-            enddo
-         endif
-*                                    chisquare probability cut values, |
-*                                    indices = (forward, barrel):      |
-*                                    total chisquare of the track fit  |
-      PRTOT(0) = 0.0001
-      PRTOT(1) = 0.0001
-*                                    smoothed chisquare (outlier test) |
-      PRSMO(0) = 0.0001
-      PRSMO(1) = 0.0001
-*
+c         DO I=1,NEXS
+c            IF (ITEXTS(I).EQ.0) THEN
+c               TYPX(I) = 'CYLI'
+c            ELSE
+c               TYPX(I) = 'PLAN'
+c            ENDIF
+c         ENDDO
+c
+c
+c         IF (TKSTDBG.GT.0) then
+c            print*
+c            print '('' material cylinders for track fit'')'
+c            print '('' Nr   radius    z-min    z-max    X0     Eloss'')'
+c            do i=1,ncmat
+c               print '(i3,3f10.2,2f8.5)',
+c     $              i,rcmat(i),zcmin(i),zcmax(i),xrlc(i),xelosc(i)
+c            enddo
+c            print*
+c            print '('' material planes for track fit'')'
+c            print '('' Nr      z      r-min    r-max    X0     Eloss'')'
+c            do i=1,npmat
+c               print '(i3,3f10.2,2f8.5)',
+c     $              i,zpmat(i),rpmin(i),rpmax(i),xrlp(i),xelosp(i)
+c            enddo
+c         endif
+c*                                    chisquare probability cut values, |
+c*                                    indices = (forward, barrel):      |
+c*                                    total chisquare of the track fit  |
+c      PRTOT(0) = 0.0001
+c      PRTOT(1) = 0.0001
+c*                                    smoothed chisquare (outlier test) |
+c      PRSMO(0) = 0.0001
+c      PRSMO(1) = 0.0001
+c*
    
       call flush
   999 return
