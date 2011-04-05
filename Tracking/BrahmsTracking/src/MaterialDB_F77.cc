@@ -222,14 +222,22 @@ namespace marlin_delphiF77{
       fkddes_.xelosc[_Ncmat] =  beamPipe_thickness * beamPipe_dedx;
     
       _Ncmat++;
-    
-    
+
       fkexts_.itexts[_Nexs] = 0;  
-      fkexts_.rzsurf[_Nexs] = 0.05*beamPipeRadius ; // SJA?
+      fkexts_.rzsurf[_Nexs] = beamPipeRadius - 0.1 ; // place an extrapolation surface just inside the beampipe
       fkexts_.zrmin[_Nexs] = -10000.;
       fkexts_.zrmax[_Nexs] = 10000.;
       
       _Nexs++;
+        
+      fkexts_.itexts[_Nexs] = 0;  
+      fkexts_.rzsurf[_Nexs] = 0.05*beamPipeRadius ; // place an extrapolation surface close to the IP
+      fkexts_.zrmin[_Nexs] = -10000.;
+      fkexts_.zrmax[_Nexs] = 10000.;
+      
+      _Nexs++;
+
+
 
     }
     catch(gear::UnknownParameterException){
@@ -271,7 +279,7 @@ namespace marlin_delphiF77{
       fkddes_.xelosc[_Ncmat] =  TPCTHBI*dedxalu;
     
       fkexts_.itexts[_Nexs]  = 0;
-      fkexts_.rzsurf[_Nexs]  = fkddes_.rcmat[_Ncmat]+0.1; //SJA?
+      fkexts_.rzsurf[_Nexs]  = fkddes_.rcmat[_Ncmat]+0.1; // place extrapolation surface just on the outside of the inner field cage material 
       fkexts_.zrmin[_Nexs]   = fkddes_.zcmin[_Ncmat];
       fkexts_.zrmax[_Nexs]   = fkddes_.zcmax[_Ncmat];
     
@@ -299,7 +307,7 @@ namespace marlin_delphiF77{
       fkddes_.xelosc[_Ncmat] =   TPCTHBO*dedxalu;
     
       fkexts_.itexts[_Nexs] = 0;
-      fkexts_.rzsurf[_Nexs] = fkddes_.rcmat[_Ncmat]-0.1; //SJA ?
+      fkexts_.rzsurf[_Nexs] = fkddes_.rcmat[_Ncmat]-0.1; // place extrapolation surface just on the inside of the outer field cage material 
       fkexts_.zrmin[_Nexs]  = fkddes_.zcmin[_Ncmat];
       fkexts_.zrmax[_Nexs]  = fkddes_.zcmax[_Ncmat];
   
@@ -577,7 +585,7 @@ namespace marlin_delphiF77{
 	_Ncmat++;
 
 	fkexts_.itexts[_Nexs] =  0;
-	fkexts_.rzsurf[_Nexs] =  0.1*radius_sen-0.1; //SJA ?
+	fkexts_.rzsurf[_Nexs] =  0.1*radius_sen-0.1; // place an extrapolation surface just inside the inner edge sensitive material 
 	fkexts_.zrmin[_Nexs]  = -0.1*halfz;
 	fkexts_.zrmax[_Nexs]  =  0.1*halfz;
   
@@ -1220,7 +1228,7 @@ namespace marlin_delphiF77{
 	  _Ncmat++;
 
 	  fkexts_.itexts[_Nexs] =  0;
-	  fkexts_.rzsurf[_Nexs] =  0.1*radius_sen-0.1; //SJA ?
+	  fkexts_.rzsurf[_Nexs] =  0.1*radius_sen-0.1; // place an extrapolation surface just inside the inner edge sensitive material 
 	  fkexts_.zrmin[_Nexs]  = -0.1*halfz;
 	  fkexts_.zrmax[_Nexs]  =  0.1*halfz;
 	  
