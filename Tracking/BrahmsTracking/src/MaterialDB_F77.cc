@@ -93,7 +93,9 @@ namespace marlin_delphiF77{
     this->buildBeamPipe() ;
     this->buildVXD();
     this->buildSIT();
+    this->buildSET();
     this->buildTPC();
+    this->buildFTD();
 
     streamlog_out(MESSAGE) << "MaterialDB_F77: Detector building finnished" << std::endl ; 
 
@@ -378,7 +380,6 @@ namespace marlin_delphiF77{
     //--The Ladder structure (realistic ladder)--
     int nLadders;
     float Pi = acos(-1);
-    //  float deg2rad = Pi / 180.0;
     
     for (int i=0; i<nLayersVTX; ++i) {
       nLadders = pVXDLayerLayout.getNLadders(i);
@@ -584,8 +585,487 @@ namespace marlin_delphiF77{
 
 	
       }
+      return build_VXD_Simple;
     }
-  return build_VXD_Simple;
+  return false ; // if this point is reached nothing was sucessfully built 
+  }
+
+  bool MaterialDB_F77::buildFTD(){
+
+    // ************************************* //
+    // ** Build Database for FTD_Detector ** //
+    // ************************************* //
+    streamlog_out(DEBUG) << "build FTD ..." << std::endl;
+    
+    bool build_FTD = true;
+
+    try{ 
+      Global::GEAR->getGearParameters("FTD");
+    }
+    catch(gear::UnknownParameterException){
+      streamlog_out(MESSAGE) << "FTD not present in Gear file -- FTD Material not created" << std::endl;
+      build_FTD = false;
+    }
+  
+    if( build_FTD ) 
+      {
+      
+	const gear::GearParameters& theFTD = Global::GEAR->getGearParameters("FTD");
+
+	std::vector<float> zFTD ;
+	std::vector<float> rInFTD ;
+	std::vector<float> rOutFTD ;
+	std::vector<float> dzSiFTD ;
+	std::vector<float> dzSupportFTD ;
+	
+	// Check which version of the FTD this is:
+	// i)  Support Rings
+	// ii) Support Disks
+      
+	// Planar detectors in FTD
+
+	bool has_si872 (false);
+	bool has_SupportDisks (false);
+
+	try{
+	  int nFTDSupport_dZ = int(theFTD.getDoubleVals("FTDDiskSupportThickness").size());
+	  nFTDSupport_dZ = 0; // avoid compiler warning 
+	  has_SupportDisks = true;
+	}
+	catch(gear::UnknownParameterException &e){}
+
+	try{
+	  float dedx_si872 = float(theFTD.getDoubleVal("Silicon872_dEdx"));
+	  dedx_si872 = 0.; // avoid compiler warning 
+	  has_si872 = true;
+	}
+	catch(gear::UnknownParameterException &e){}
+
+
+      
+	// Planar detectors in FTD
+
+	if(has_SupportDisks==true && has_si872==false) {
+ 
+	  streamlog_out(DEBUG) << "build FTD according to the SupportDisk structure" << std::endl;
+
+	  int nLayersFTD = 0;
+	  int nFTDZ = int(theFTD.getDoubleVals("FTDZCoordinate").size());
+	  int nFTDRin = int(theFTD.getDoubleVals("FTDInnerRadius").size());
+	  int nFTDRout = int(theFTD.getDoubleVals("FTDOuterRadius").size());
+	  int nFTDSi_dZ = int(theFTD.getDoubleVals("FTDDiskSiThickness").size());
+	  int nFTDSupport_dZ = int(theFTD.getDoubleVals("FTDDiskSupportThickness").size());
+  
+
+	  if (nFTDZ == nFTDRin && nFTDRin == nFTDRout && nFTDRout == nFTDSi_dZ && nFTDSi_dZ == nFTDSupport_dZ) {
+	    nLayersFTD = nFTDZ;
+	    zFTD.resize(nLayersFTD);
+	    rInFTD.resize(nLayersFTD);
+	    rOutFTD.resize(nLayersFTD);
+	    dzSiFTD.resize(nLayersFTD);
+	    dzSupportFTD.resize(nLayersFTD);
+	  }
+	  else {
+	    std::stringstream errorMsg ;
+	    errorMsg << "Size of vectors FTDZCoordinate, FTDInnerRadius, FTDInnerRadius, FTDDiskSiThickness and FTDDiskSupportThickness are not equal --->" 
+		     << " # FTDZCoordinate : " << nFTDZ
+		     << " # FTDInnerRadius : " << nFTDRin
+		     << " # FTDOuterRadius : " << nFTDRout 
+		     << " # FTDDiskSiThickness : " << nFTDSi_dZ
+		     << " # FTDDiskSupportThickness : " << nFTDSupport_dZ
+		     << std::endl ;
+	    throw gear::Exception(errorMsg.str());
+	  }
+	  for (int i=0;i<nLayersFTD;++i) {
+	    zFTD[i] = float(theFTD.getDoubleVals("FTDZCoordinate")[i]);
+	    rInFTD[i] = float(theFTD.getDoubleVals("FTDInnerRadius")[i]);
+	    rOutFTD[i] = float(theFTD.getDoubleVals("FTDOuterRadius")[i]);
+	    dzSiFTD[i] = float(theFTD.getDoubleVals("FTDDiskSiThickness")[i]);
+	    dzSupportFTD[i] = float(theFTD.getDoubleVals("FTDDiskSupportThickness")[i]);
+	  } 
+	  
+	  float zFTDOuterCyllinderStart = float(theFTD.getDoubleVal("zFTDOuterCylinderStart"));
+	  float zFTDOuterCyllinderEnd = float(theFTD.getDoubleVal("zFTDOuterCylinderEnd"));
+//	  float zFTDInnerConeStart = float(theFTD.getDoubleVal("zFTDInnerConeStart"));
+//	  float zFTDInnerConeEnd = float(theFTD.getDoubleVal("zFTDInnerConeEnd"));
+	  float FTD_copper_thickness = float(theFTD.getDoubleVal("FTDCopperThickness"));
+	  float FTD_kaptonCyl_thickness = float(theFTD.getDoubleVal("FTDOuterCylinderThickness"));
+	
+	  float dedx_si = 10.0*float(theFTD.getDoubleVal("Silicon_dEdx"));
+	  float dedx_kapton = 10.0*float(theFTD.getDoubleVal("Kapton_dEdx"));
+	  float dedx_copper = 10.0*float(theFTD.getDoubleVal("Copper_dEdx"));
+	  float radlen_si = 0.1*float(theFTD.getDoubleVal("Silicon_RadLen"));  
+	  float radlen_kapton = 0.1*float(theFTD.getDoubleVal("Kapton_RadLen"));
+	  float radlen_copper = 0.1*float(theFTD.getDoubleVal("Copper_RadLen"));
+	  
+	  for (int i=0;i<nLayersFTD;++i) {
+	    // FTD Si Disks
+	    float dedx = dedx_si;
+	    float radlen  = radlen_si;
+	    
+	    // right-hand part
+	    fkddes_.zpmat[_Npmat] = 0.1*zFTD[i];
+	    fkddes_.rpmin[_Npmat] = 0.1*rInFTD[i];
+	    fkddes_.rpmax[_Npmat] = 0.1*rOutFTD[i];
+	    fkddes_.xrlp[_Npmat] = 0.1*dzSiFTD[i]/radlen;
+	    fkddes_.xelosp[_Npmat] = 0.1*dzSiFTD[i]*dedx;
+	    
+	    fkexts_.itexts[_Nexs] = 1;
+	    fkexts_.rzsurf[_Nexs] = fkddes_.zpmat[_Npmat];
+	    fkexts_.zrmin[_Nexs] = fkddes_.rpmin[_Npmat];
+	    fkexts_.zrmax[_Nexs] = fkddes_.rpmax[_Npmat];
+	    
+	    _Nexs++;
+	    _Npmat++;
+	    
+	    // left-hand part
+	    fkddes_.zpmat[_Npmat] = -0.1*zFTD[i];
+	    fkddes_.rpmin[_Npmat] = 0.1*rInFTD[i];
+	    fkddes_.rpmax[_Npmat] = 0.1*rOutFTD[i];
+	    fkddes_.xrlp[_Npmat] = 0.1*dzSiFTD[i]/radlen;
+	    fkddes_.xelosp[_Npmat] = 0.1*dzSiFTD[i]*dedx;
+	    
+	    fkexts_.itexts[_Nexs] = 1;
+	    fkexts_.rzsurf[_Nexs] = fkddes_.zpmat[_Npmat];
+	    fkexts_.zrmin[_Nexs] = fkddes_.rpmin[_Npmat];
+	    fkexts_.zrmax[_Nexs] = fkddes_.rpmax[_Npmat];
+	    
+	    _Nexs++;
+	    _Npmat++;
+	    
+	    // Support Disks
+	    // right-hand part
+	    fkddes_.zpmat[_Npmat] = 0.1*(zFTD[i]+(dzSiFTD[i]/2.0)+(dzSupportFTD[i]/2.0));
+	    fkddes_.rpmin[_Npmat] = 0.1*rInFTD[i];
+	    fkddes_.rpmax[_Npmat] = 0.1*rOutFTD[i];
+	    fkddes_.xrlp[_Npmat] = 0.1*(dzSupportFTD[i]/radlen_kapton);
+	    fkddes_.xelosp[_Npmat] = 0.1*(dzSupportFTD[i]*dedx_kapton);
+	    _Npmat++;
+	
+	    // left-hand part
+	    fkddes_.zpmat[_Npmat] = -0.1*(zFTD[i]+(dzSiFTD[i]/2.0)+(dzSupportFTD[i]/2.0));
+	    fkddes_.rpmin[_Npmat] = 0.1*rInFTD[i];
+	    fkddes_.rpmax[_Npmat] = 0.1*rOutFTD[i];
+	    fkddes_.xrlp[_Npmat] = 0.1*dzSupportFTD[i]/radlen_kapton;
+	    fkddes_.xelosp[_Npmat] = 0.1*dzSupportFTD[i]*dedx_kapton;
+	    _Npmat++;
+	    
+	  }
+	  // Outer support cyllinders (FTD)
+	  
+	    // copper cables; left part
+	  fkddes_.rcmat[_Ncmat] = 0.1*(rOutFTD[nLayersFTD-1]+0.5+
+				       0.5*FTD_copper_thickness);
+	  fkddes_.zcmin[_Ncmat] = -0.1*zFTDOuterCyllinderEnd;
+	  fkddes_.zcmax[_Ncmat] = -0.1*zFTDOuterCyllinderStart;
+	  fkddes_.xrlc[_Ncmat] = 0.1*FTD_copper_thickness/radlen_copper;
+	  fkddes_.xelosc[_Ncmat] = 0.1*FTD_copper_thickness*dedx_copper;
+	  _Ncmat++;
+	  // copper cables; right part
+	  fkddes_.rcmat[_Ncmat] = 0.1*(rOutFTD[nLayersFTD-1]+0.5+ 
+				       0.5*FTD_copper_thickness);
+	  fkddes_.zcmin[_Ncmat] = 0.1*zFTDOuterCyllinderStart;
+	  fkddes_.zcmax[_Ncmat] = 0.1*zFTDOuterCyllinderEnd;
+	  fkddes_.xrlc[_Ncmat] = 0.1*FTD_copper_thickness/radlen_copper;
+	  fkddes_.xelosc[_Ncmat] = 0.1*FTD_copper_thickness*dedx_copper;
+	  _Ncmat++;  
+	  // kapton cyllinder; left part
+	  fkddes_.rcmat[_Ncmat] = 0.1*(rOutFTD[nLayersFTD-1]+0.5+
+				       FTD_copper_thickness+
+				       0.5*FTD_kaptonCyl_thickness);
+	  fkddes_.zcmin[_Ncmat] = -0.1*zFTDOuterCyllinderEnd;
+	  fkddes_.zcmax[_Ncmat] = -0.1*zFTDOuterCyllinderStart;
+	  fkddes_.xrlc[_Ncmat] = 0.1*FTD_kaptonCyl_thickness/radlen_kapton;
+	  fkddes_.xelosc[_Ncmat] = 0.1*FTD_kaptonCyl_thickness*dedx_kapton;
+	  _Ncmat++;
+	  // kapton cyllinder; right part
+	  fkddes_.rcmat[_Ncmat] = 0.1*(rOutFTD[nLayersFTD-1]+0.5+
+				       FTD_copper_thickness+
+				       0.5*FTD_kaptonCyl_thickness);
+	  fkddes_.zcmin[_Ncmat] = 0.1*zFTDOuterCyllinderStart;
+	  fkddes_.zcmax[_Ncmat] = 0.1*zFTDOuterCyllinderEnd;
+	  fkddes_.xrlc[_Ncmat] = 0.1*FTD_kaptonCyl_thickness/radlen_kapton;
+	  fkddes_.xelosc[_Ncmat] = 0.1*FTD_kaptonCyl_thickness*dedx_kapton;
+	  _Ncmat++;
+	  
+	}
+	
+	else if(has_si872==true && has_SupportDisks==false) {
+	    
+	    streamlog_out(DEBUG) << "build FTD according to the SupportRing structure" << std::endl;
+	    
+	    int nLayersFTD = 0;
+	    int nFTDZ = int(theFTD.getDoubleVals("FTDZCoordinate").size());
+	    int nFTDRin = int(theFTD.getDoubleVals("FTDInnerRadius").size());
+	    int nFTDRout = int(theFTD.getDoubleVals("FTDOuterRadius").size());
+	    
+	    
+	    if (nFTDZ == nFTDRin && nFTDRin == nFTDRout) {
+	      nLayersFTD = nFTDZ;
+	      zFTD.resize(nLayersFTD);
+	      rInFTD.resize(nLayersFTD);
+	      rOutFTD.resize(nLayersFTD);
+	    }
+	    else {
+	      streamlog_out(DEBUG) << "Size of vectors FTDZCoordinate, FTDInnerRadius and  FTDInnerRadius are not equal --->" << std::endl;
+	      streamlog_out(DEBUG) << "# FTDZCoordinate : " << nFTDZ << std::endl;
+	      streamlog_out(DEBUG) << "# FTDInnerRadius : " << nFTDRin << std::endl;
+	      streamlog_out(DEBUG) << "# FTDOuterRadius : " << nFTDRout << std::endl;
+	      exit(1);
+	    }
+	    for (int i=0;i<nLayersFTD;++i) {
+	      zFTD[i] = float(theFTD.getDoubleVals("FTDZCoordinate")[i]);
+	      rInFTD[i] = float(theFTD.getDoubleVals("FTDInnerRadius")[i]);
+	      rOutFTD[i] = float(theFTD.getDoubleVals("FTDOuterRadius")[i]);
+	    } 
+	    float FTDdisk_thickness = float(theFTD.getDoubleVal("FTDDiskThickness"));
+	    float FTD_innerSupport_dR = float(theFTD.getDoubleVal("FTDInnerSupportdR"));
+	    float FTD_outerSupport_dR = float(theFTD.getDoubleVal("FTDOuterSupportdR"));
+	    float FTD_innerSupport_thickness = float(theFTD.getDoubleVal("FTDInnerSupportThickness"));
+	    float FTD_outerSupport_thickness = float(theFTD.getDoubleVal("FTDOuterSupportThickness"));
+	    float zFTDOuterCyllinderStart = float(theFTD.getDoubleVal("zFTDOuterCylinderStart"));
+	    float zFTDOuterCyllinderEnd = float(theFTD.getDoubleVal("zFTDOuterCylinderEnd"));
+//	    float zFTDInnerConeStart = float(theFTD.getDoubleVal("zFTDInnerConeStart"));
+//	    float zFTDInnerConeEnd = float(theFTD.getDoubleVal("zFTDInnerConeEnd"));
+	    float FTD_copper_thickness = float(theFTD.getDoubleVal("FTDCopperThickness"));
+	    float FTD_kaptonCyl_thickness = float(theFTD.getDoubleVal("FTDOuterCylinderThickness"));
+	    int iLast = theFTD.getIntVal("LastHeavyLayer");
+	    float dedx_si = 10.0*float(theFTD.getDoubleVal("Silicon_dEdx"));
+	    float dedx_si872(0);
+	    float radlen_si872(0);
+	    if (iLast>0) {
+	      dedx_si872 = 10.0*float(theFTD.getDoubleVal("Silicon872_dEdx"));
+	      radlen_si872 = 0.1*float(theFTD.getDoubleVal("Silicon872_RadLen"));
+	    }
+	    float dedx_kapton = 10.0*float(theFTD.getDoubleVal("Kapton_dEdx"));
+	    float dedx_copper = 10.0*float(theFTD.getDoubleVal("Copper_dEdx"));
+	    float radlen_si = 0.1*float(theFTD.getDoubleVal("Silicon_RadLen"));  
+	    float radlen_kapton = 0.1*float(theFTD.getDoubleVal("Kapton_RadLen"));
+	    float radlen_copper = 0.1*float(theFTD.getDoubleVal("Copper_RadLen"));
+	    
+	    for (int i=0;i<nLayersFTD;++i) {
+	      // FTD Si Disks
+	      float dedx = dedx_si;
+	      float radlen  = radlen_si;
+	      if (i<iLast) {
+		dedx = dedx_si872;
+		radlen = radlen_si872;
+	      }
+	      // right-hand part
+	      fkddes_.zpmat[_Npmat] = 0.1*zFTD[i];
+	      fkddes_.rpmin[_Npmat] = 0.1*rInFTD[i];
+	      fkddes_.rpmax[_Npmat] = 0.1*rOutFTD[i];
+	      fkddes_.xrlp[_Npmat] = 0.1*FTDdisk_thickness/radlen;
+	      fkddes_.xelosp[_Npmat] = 0.1*FTDdisk_thickness*dedx;
+	      
+	      fkexts_.itexts[_Nexs] = 1;
+	      fkexts_.rzsurf[_Nexs] = fkddes_.zpmat[_Npmat];
+	      fkexts_.zrmin[_Nexs] = fkddes_.rpmin[_Npmat];
+	      fkexts_.zrmax[_Nexs] = fkddes_.rpmax[_Npmat];
+	      
+	      _Nexs++;
+	      _Npmat++;
+	      
+	      // left-hand part
+	      fkddes_.zpmat[_Npmat] = -0.1*zFTD[i];
+	      fkddes_.rpmin[_Npmat] = 0.1*rInFTD[i];
+	      fkddes_.rpmax[_Npmat] = 0.1*rOutFTD[i];
+	      fkddes_.xrlp[_Npmat] = 0.1*FTDdisk_thickness/radlen;
+	      fkddes_.xelosp[_Npmat] = 0.1*FTDdisk_thickness*dedx;
+	      
+	      fkexts_.itexts[_Nexs] = 1;
+	      fkexts_.rzsurf[_Nexs] = fkddes_.zpmat[_Npmat];
+	      fkexts_.zrmin[_Nexs] = fkddes_.rpmin[_Npmat];
+	      fkexts_.zrmax[_Nexs] = fkddes_.rpmax[_Npmat];
+	      
+	      _Nexs++;
+	      _Npmat++;
+	      
+	      // Inner Support Rings
+	      // right-hand part
+	      fkddes_.zpmat[_Npmat] = 0.1*zFTD[i];
+	      fkddes_.rpmin[_Npmat] = 0.1*(rInFTD[i]-FTD_innerSupport_dR);
+	      fkddes_.rpmax[_Npmat] = 0.1*rInFTD[i];
+	      fkddes_.xrlp[_Npmat] = 0.1*FTD_innerSupport_thickness/radlen_kapton;
+	      fkddes_.xelosp[_Npmat] = 0.1*FTD_innerSupport_thickness*dedx_kapton;
+	      _Npmat++;
+	      
+	      // left-hand part
+	      fkddes_.zpmat[_Npmat] = -0.1*zFTD[i];
+	      fkddes_.rpmin[_Npmat] = 0.1*(rInFTD[i]-FTD_innerSupport_dR);
+	      fkddes_.rpmax[_Npmat] = 0.1*rInFTD[i];
+	      fkddes_.xrlp[_Npmat] = 0.1*FTD_innerSupport_thickness/radlen_kapton;
+	      fkddes_.xelosp[_Npmat] = 0.1*FTD_innerSupport_thickness*dedx_kapton;
+	      _Npmat++;
+	      
+	      // Outer Support
+	      // right-hand part
+	      fkddes_.zpmat[_Npmat] = 0.1*zFTD[i];
+	      fkddes_.rpmin[_Npmat] = 0.1*rOutFTD[i];
+	      fkddes_.rpmax[_Npmat] = 0.1*(rOutFTD[i]+FTD_outerSupport_dR);
+	      fkddes_.xrlp[_Npmat] = 0.1*FTD_outerSupport_thickness/radlen_kapton;
+	      fkddes_.xelosp[_Npmat] = 0.1*FTD_outerSupport_thickness*dedx_kapton;
+	      _Npmat++;
+	      
+	      // left-hand part
+	      fkddes_.zpmat[_Npmat] = -0.1*zFTD[i];
+	      fkddes_.rpmin[_Npmat] = 0.1*rOutFTD[i];
+	      fkddes_.rpmax[_Npmat] = 0.1*(rOutFTD[i]+FTD_outerSupport_dR);
+	      fkddes_.xrlp[_Npmat]  = 0.1*FTD_outerSupport_thickness/radlen_kapton;
+	      fkddes_.xelosp[_Npmat]= 0.1*FTD_outerSupport_thickness*dedx_kapton;
+	      _Npmat++;
+	    }
+	    
+	    
+	    
+	    // copper cables; left part
+	    fkddes_.rcmat[_Ncmat] = 0.1*(rOutFTD[nLayersFTD-1]+
+					FTD_outerSupport_dR+0.5+
+					0.5*FTD_copper_thickness);
+	    fkddes_.zcmin[_Ncmat] = -0.1*zFTDOuterCyllinderEnd;
+	    fkddes_.zcmax[_Ncmat] = -0.1*zFTDOuterCyllinderStart;
+	    fkddes_.xrlc[_Ncmat] = 0.1*FTD_copper_thickness/radlen_copper;
+	    fkddes_.xelosc[_Ncmat] = 0.1*FTD_copper_thickness*dedx_copper;
+	    _Ncmat++;
+	    
+	    // copper cables; right part
+	    fkddes_.rcmat[_Ncmat] = 0.1*(rOutFTD[nLayersFTD-1]+
+					FTD_outerSupport_dR+0.5+ 
+					0.5*FTD_copper_thickness);
+	    fkddes_.zcmin[_Ncmat] = 0.1*zFTDOuterCyllinderStart;
+	    fkddes_.zcmax[_Ncmat] = 0.1*zFTDOuterCyllinderEnd;
+	    fkddes_.xrlc[_Ncmat] = 0.1*FTD_copper_thickness/radlen_copper;
+	    fkddes_.xelosc[_Ncmat] = 0.1*FTD_copper_thickness*dedx_copper;
+	    _Ncmat++;  
+	    
+	    // kapton cyllinder; left part
+	    fkddes_.rcmat[_Ncmat] = 0.1*(rOutFTD[nLayersFTD-1]+
+					FTD_outerSupport_dR+0.5+
+					FTD_copper_thickness+
+					0.5*FTD_kaptonCyl_thickness);
+	    fkddes_.zcmin[_Ncmat] = -0.1*zFTDOuterCyllinderEnd;
+	    fkddes_.zcmax[_Ncmat] = -0.1*zFTDOuterCyllinderStart;
+	    fkddes_.xrlc[_Ncmat] = 0.1*FTD_kaptonCyl_thickness/radlen_kapton;
+	    fkddes_.xelosc[_Ncmat] = 0.1*FTD_kaptonCyl_thickness*dedx_kapton;
+	    _Ncmat++;
+	    
+	    // kapton cyllinder; right part
+	    fkddes_.rcmat[_Ncmat] = 0.1*(rOutFTD[nLayersFTD-1]+
+					FTD_outerSupport_dR+0.5+
+					FTD_copper_thickness+
+					0.5*FTD_kaptonCyl_thickness);
+	    fkddes_.zcmin[_Ncmat] = 0.1*zFTDOuterCyllinderStart;
+	    fkddes_.zcmax[_Ncmat] = 0.1*zFTDOuterCyllinderEnd;
+	    fkddes_.xrlc[_Ncmat] = 0.1*FTD_kaptonCyl_thickness/radlen_kapton;
+	    fkddes_.xelosc[_Ncmat] = 0.1*FTD_kaptonCyl_thickness*dedx_kapton;
+	    _Ncmat++;
+	  }
+	  
+	  else {
+	    std::stringstream errorMsg;
+	    errorMsg << "MaterialDB Processor : FTD Geometery not correctly described. \n"
+		      << " It is neither SupportRing or SupportDisk based."
+		      <<  std::endl;
+	    throw gear::Exception(errorMsg.str());
+	  }
+	  
+      }
+    return build_FTD;	 
+  }
+   
+
+  bool MaterialDB_F77::buildSET(){ 
+
+    streamlog_out(DEBUG) << "build SET  ..." << std::endl;
+    bool build_SET = true;
+
+    try{
+      Global::GEAR->getGearParameters("SET");      
+    }
+
+    catch(gear::UnknownParameterException){
+      streamlog_out(MESSAGE) << "SET not present in Gear file -- SET Material not created" << std::endl;
+      build_SET = false;
+    }
+
+    if(build_SET){
+          // SET layers
+      const gear::GearParameters& pSETDet = Global::GEAR->getGearParameters("SET");
+
+      std::vector<float> rSET;
+      std::vector<float> halfZSET;
+      std::vector<float> rSETSupport;
+      std::vector<float> halfZSETSupport;
+
+      std::vector<double> SETLayer_thickness ;
+      std::vector<double> SETLayerSupport_thickness ;
+
+      int nSETR = int(pSETDet.getDoubleVals("SETLayerRadius").size());
+      int nSETHL = int(pSETDet.getDoubleVals("SETLayerHalfLength").size());
+      //  int SETModel = int(pSETDet.getIntVal("SETModel"));
+      int nLayersSET = 0;
+      
+      if (nSETR == nSETHL) {
+	nLayersSET = nSETR;
+	rSET.resize(nLayersSET);
+	halfZSET.resize(nLayersSET);
+	rSETSupport.resize(nLayersSET);
+	halfZSETSupport.resize(nLayersSET);
+      }
+      else {
+	std::stringstream errorMsg;
+	errorMsg << "Size of SETLayerRadius vector (" << nSETR 
+		  << ") is not equal to the size of SETHalfLength vector ("
+		  << nSETHL << ")" << std::endl;
+	throw gear::Exception(errorMsg.str());
+      }
+      
+      
+      getDoubleValues(SETLayer_thickness,        pSETDet, "SETLayerThickness", nLayersSET );
+      getDoubleValues(SETLayerSupport_thickness, pSETDet, "SETSupportLayerThickness", nLayersSET );
+      
+      for (int iL=0;iL<nLayersSET;++iL) {
+	rSET[iL] = float(pSETDet.getDoubleVals("SETLayerRadius")[iL]);
+	halfZSET[iL] = float(pSETDet.getDoubleVals("SETLayerHalfLength")[iL]);
+	rSETSupport[iL] = float(pSETDet.getDoubleVals("SETSupportLayerRadius")[iL]);
+	halfZSETSupport[iL] = float(pSETDet.getDoubleVals("SETSupportLayerHalfLength")[iL]);
+      }
+      
+      float radlen_si = 0.1*float(pSETDet.getDoubleVal("SETLayer_RadLen"));
+      float dedx_si = 10.*float(pSETDet.getDoubleVal("SETLayer_dEdx"));
+      
+      
+      float radlen_ber = 0.1*float(pSETDet.getDoubleVal("SETSupportLayer_RadLen"));
+      float dedx_ber = 10.*float(pSETDet.getDoubleVal("SETSupportLayer_dEdx"));
+      
+      
+      for (int iL = 0; iL < nLayersSET; ++iL) {
+	
+		
+	fkddes_.rcmat[_Ncmat] = 0.1*rSET[iL];
+	fkddes_.zcmin[_Ncmat] = -0.1*halfZSET[iL];
+	fkddes_.zcmax[_Ncmat] = 0.1*halfZSET[iL];
+	fkddes_.xrlc[_Ncmat] = 0.1*SETLayer_thickness[iL]/radlen_si;
+	fkddes_.xelosc[_Ncmat] = 0.1*SETLayer_thickness[iL]*dedx_si;     
+	++_Ncmat;
+	
+	fkddes_.rcmat[_Ncmat] = 0.1*rSETSupport[iL];
+	fkddes_.zcmin[_Ncmat] = -0.1*halfZSETSupport[iL];
+	fkddes_.zcmax[_Ncmat] = 0.1*halfZSETSupport[iL];
+	fkddes_.xrlc[_Ncmat] = 0.1*SETLayerSupport_thickness[iL]/radlen_ber;
+	fkddes_.xelosc[_Ncmat] = 0.1*SETLayerSupport_thickness[iL]*dedx_ber;
+	++_Ncmat;
+	
+    
+	fkexts_.itexts[_Nexs] = 0;
+	fkexts_.rzsurf[_Nexs] = 0.1*rSET[iL];
+	fkexts_.zrmin[_Nexs]  = -halfZSET[iL];
+	fkexts_.zrmax[_Nexs]  = halfZSET[iL];
+	
+	++_Nexs;	      	      
+      } 
+    }
+    return build_SET;
   }
 
 
@@ -681,11 +1161,9 @@ namespace marlin_delphiF77{
 	++_Nexs;	      	      
       } 
       return build_SIT;
-    }    
+    }
     
-  
-
-
+    
     // *********************************************** //
     // ** Build Database for SIT_Simple Detector ** //
     // *********************************************** //
@@ -749,9 +1227,9 @@ namespace marlin_delphiF77{
 	  _Nexs++;
 	
 	}	
+	return build_SIT_Simple;
       }
-    return build_SIT_Simple;
+    return false ; // if this point is reached nothing was sucessfully built
   }
-
 
 } // end of marlin_delphiF77 namespace 

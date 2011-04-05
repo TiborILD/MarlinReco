@@ -46,7 +46,9 @@ namespace marlin_delphiF77{
 
     bool buildBeamPipe() ;
     bool buildVXD();
+    bool buildFTD();
     bool buildSIT();
+    bool buildSET();
     bool buildTPC();
 
     // private memeber variables
