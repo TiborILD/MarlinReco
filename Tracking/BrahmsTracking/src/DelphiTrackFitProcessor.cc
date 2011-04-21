@@ -21,6 +21,8 @@
 #include "MarlinDelphiTrack.h"
 #include "MaterialDB_F77.hh"
 
+
+
 using namespace lcio ;
 using namespace marlin ;
 using namespace marlin_delphiF77 ;
@@ -130,27 +132,26 @@ void DelphiTrackFitProcessor::processEvent( LCEvent * evt ) {
 
 	  TrackImpl* refittedTrack = marlin_trk->getIPFit() ;
 
-	  MarlinDelphiTrack* delphi_trk = static_cast<MarlinDelphiTrack*>(marlin_trk);
-
-	  std::vector<TanagraFit const*> fits ;
-
-	  delphi_trk->getTanagraFits(fits) ;
-
-	  for( unsigned int iext=0; iext < fits.size(); ++iext) {
-
-	    float cov[15] ;
-	    fits[iext]->get_cov(cov);
-	    
-	    streamlog_out( MESSAGE ) << "Track Parameters for surface " << iext << " at R = " << fits[iext]->get_r() 
-				   << "    rphi "        <<  fits[iext]->get_rphi()  <<  "[+/-" << sqrt( cov[0] ) << "] " 
-				   << "    z "           <<  fits[iext]->get_z()  <<  "[+/-" << sqrt( cov[2] ) << "] " 
-				   << "    theta "       <<  fits[iext]->get_theta()  <<  "[+/-" << sqrt( cov[5] ) << "] " 
-				   << "    phi "         <<  fits[iext]->get_phi()  <<  "[+/-" << sqrt( cov[9]) << "] " 
-				   << "    invP "        <<  fits[iext]->get_invp()  <<  "[+/-" << sqrt( cov[14]) << "] " 
-				   <<  std::endl ;
-	  }
+//	  MarlinDelphiTrack* delphi_trk = static_cast<MarlinDelphiTrack*>(marlin_trk);
+//
+//	  std::vector<TanagraFit const*> fits ;
+//
+//	  delphi_trk->getTanagraFits(fits) ;
+//
+//	  for( unsigned int iext=0; iext < fits.size(); ++iext) {
+//
+//	    float cov[15] ;
+//	    fits[iext]->get_cov(cov);
+//	    
+//	    streamlog_out( MESSAGE ) << "Track Parameters for surface " << iext << " at R = " << fits[iext]->get_r() 
+//				   << "    rphi "        <<  fits[iext]->get_rphi()  <<  "[+/-" << sqrt( cov[0] ) << "] " 
+//				   << "    z "           <<  fits[iext]->get_z()  <<  "[+/-" << sqrt( cov[2] ) << "] " 
+//				   << "    theta "       <<  fits[iext]->get_theta()  <<  "[+/-" << sqrt( cov[5] ) << "] " 
+//				   << "    phi "         <<  fits[iext]->get_phi()  <<  "[+/-" << sqrt( cov[9]) << "] " 
+//				   << "    invP "        <<  fits[iext]->get_invp()  <<  "[+/-" << sqrt( cov[14]) << "] " 
+//				   <<  std::endl ;
+//	  }
 	
-
 
 	  //	//SJA:FIXME: This has to go away. The use of hardcoded number here is completely error prone ...
 	  refittedTrack->subdetectorHitNumbers().resize(12);
