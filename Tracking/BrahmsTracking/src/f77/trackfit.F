@@ -584,18 +584,34 @@ C SJA before filling the TKbanks here we should really check if they are empty .
 
       DO 603 IX=1,NEXS
          IF (IFLX(IX).EQ.0) THEN
-            IF (TYPX(IX).EQ.'CYLI') THEN               
-               DO ICOV=1, 15
-                  XCOV(ICOV) = (DATX(ICOV+6,IX))
-               ENDDO
-               TRY = TKMKTKCPP(0,0,FITCODE,0,
-     +              0,0,0,0,0,
-     +              0,0,0,0,0,
-     +              0,0,DATX(1,IX),DATX(2,IX),DATX(3,IX),
-     +              DATX(4,IX),DATX(5,IX),DATX(6,IX),XCOV)
+            IF (TYPX(IX).EQ.'CYLI') THEN
+               FITCODE = 1
+            ELSE
+               FITCODE = 0
             ENDIF
+            DO ICOV=1, 15
+               XCOV(ICOV) = (DATX(ICOV+6,IX))
+            ENDDO
+            
+            TRY = TKMKTKCPP(0,0,FITCODE,0,
+     +           0,0,0,NDFFIT,CHI2FIT,
+     +           0,0,0,0,0,
+     +           0,0,DATX(1,IX),DATX(2,IX),DATX(3,IX),
+     +           DATX(4,IX),DATX(5,IX),DATX(6,IX),XCOV)
          ENDIF
- 603   CONTINUE
+ 603  CONTINUE
+
+C      DO IX=1,24
+C         WRITE(*,153) IX,DATX(IX,IXPNT)
+C      ENDDO
+C      
+C 153  FORMAT('TrackFit ', 
+C     >     ' DATX('  ,I1,
+C     >     ') = ' ,E10.3)
+C
+C      DO IX=1,24
+C         WRITE(*,*), DATX(IX,IXPNT)
+C      ENDDO
 
 
       DO IX=1,6
