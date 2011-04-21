@@ -736,7 +736,7 @@ void MarlinTrackFit::ConvertCovMatrix(float * rfit, float * rfite, float * param
   dXdEta[1][4] = 0;
   
   // X2 = Phi0
-  // Phi = atan2(-YC,-XC) - pi*q/2,
+  // Phi0 = atan2(-YC,-XC) - pi*q/2,
   // where q is the charge of particles
   double dXCdEta[5];
   double dYCdEta[5];
@@ -776,6 +776,8 @@ void MarlinTrackFit::ConvertCovMatrix(float * rfit, float * rfite, float * param
   // method using formulae XC = (R-d0)*sin(Phi0)
   //                       YC = (d0-R)*cos(Phi0) 
 
+  // d0 = R - XC/sin(Phi0) 
+  // d0 = R + YC/cos(Phi0) 
 
   double sinPhi0=sin(param[2]);
   double cosPhi0=cos(param[2]);
