@@ -35,26 +35,23 @@ namespace marlin_delphiF77{
     // make member functions private to force use through interface
     bool fit( bool fitDirection );
   
-    // returns an LCIO Track with fit parameters determinded at the IP. SJA:FIXME: who will delete this?
-    IMPL::TrackImpl* getIPFit();
+  // returns a pointer to a New LCIO Track with fit parameters determinded at the IP. The responsiblitiy for deletion lies with the caller.
+    IMPL::TrackImpl* getIPFit() ;
 
-    // returns an LCIO Track whose referece point is the closest to the specified point. SJA:FIXME: who will delete this?
+ // returns a pointer to an LCIO Track whose referece point is the closest to the specified point.
     IMPL::TrackImpl* getNearestFit(float* point) ;
 
-    //    void ConvertCovMatrix(float* rfit, float* rfite, float* param, float& bField, int fitCode, float* eparam);
-
-    //    void ConvertTANAGRAtoLC(float* rfit, float & bField, int & fitCode, float* param) ;
-
-    //    IMPL::TrackImpl* PropegateLCToNewRef( EVENT::Track* trk, float xref, float yref, float zref ) ;
 
     // memeber variables 
     EVENT::Track*    _initialLCTrack ;
-    IMPL::TrackImpl* _currentLCTrack ;
+    IMPL::TrackImpl* _ipPropagatedLCTrack ;
 
 
     EVENT::TrackerHitVec _lcioHits ; 
 
-    std::vector<TanagraTrack *> _tanagra_fits ;
+    std::vector< TanagraTrack* > _tanagra_fits ;
+
+    std::vector< IMPL::TrackImpl* > _lcio_tracks ;
 
     bool _fit_done ;
 

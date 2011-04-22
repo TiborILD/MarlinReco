@@ -2,6 +2,7 @@
 #include "MarlinDelphiTrack.h"
 
 #include <cmath>
+#include <float.h>
 
 #include "MarlinTrackFit.h"
 
@@ -41,7 +42,7 @@ namespace marlin_delphiF77{
 
   // constructor 
   MarlinDelphiTrack::MarlinDelphiTrack( EVENT::Track * lcTrk) 
-    : _initialLCTrack(lcTrk), _currentLCTrack(NULL), _fit_done(false)
+    : _initialLCTrack(lcTrk), _ipPropagatedLCTrack(NULL), _fit_done(false)
   {
 
     Tk_Tk_Bank::Instance().clear();
@@ -119,6 +120,10 @@ namespace marlin_delphiF77{
 
     for( unsigned int i=0; i < _tanagra_fits.size(); ++i) {
       delete _tanagra_fits[i] ;
+    }
+
+    for( unsigned int i=0; i < _lcio_tracks.size(); ++i) {
+      delete _lcio_tracks[i] ;
     }
 
   }
@@ -243,17 +248,14 @@ namespace marlin_delphiF77{
 			     << "number of extrapolation surfaces = " << Tk_Tk_Bank::Instance().size()
 			     << std::endl ;    
 
-      IMPL::TrackImpl* trkClosestToIP(NULL) ;
-      double rMinSurf = 0.0 ;
+      IMPL::TrackImpl* trkClosestToIP = NULL ;
+      double rMinSurf = DBL_MAX ;
       
       for(int iext=0; iext < Tk_Tk_Bank::Instance().size(); ++iext) 
 	{
 
 	  float ex_tanagra_param[6]; 
 	  float ex_tanagra_eparam[15];
-
-	  float ex_lcio_param[5]; 
-	  float ex_lcio_eparam[15];
 	
 	  ex_tanagra_param[0] = Tk_Tk_Bank::Instance().getCoord1_of_ref_point(iext);
 	  ex_tanagra_param[1] = Tk_Tk_Bank::Instance().getCoord2_of_ref_point(iext);
@@ -262,7 +264,7 @@ namespace marlin_delphiF77{
 	  ex_tanagra_param[4] = Tk_Tk_Bank::Instance().getPhi(iext);
 	  ex_tanagra_param[5] = Tk_Tk_Bank::Instance().getInvp(iext);
 
-	  int fit_code = Tk_Tk_Bank::Instance().getMeasurement_code(iext);
+	  int fit_code      = Tk_Tk_Bank::Instance().getMeasurement_code(iext);
 	  int ndf_surf      = Tk_Tk_Bank::Instance().getNdf(iext);
 	  float chi2_surf   = Tk_Tk_Bank::Instance().getChi2(iext);
 
@@ -291,8 +293,9 @@ namespace marlin_delphiF77{
 	  
 	  _tanagra_fits.push_back(tf);
 
-	  //	  IMPL::TrackImpl* trkAtSurf = tf->convertTANAGRAtoLC() ;
 	  IMPL::TrackImpl* trkAtSurf = TrackPropagators::convertTanagraToLCIO(tf) ;
+
+	  _lcio_tracks.push_back(trkAtSurf) ;
 	  
 	  //  get cov matrix for printing 
 	  EVENT::FloatVec cov = trkAtSurf->getCovMatrix() ;
@@ -339,80 +342,31 @@ namespace marlin_delphiF77{
 	  
 	}
       
+      _ipPropagatedLCTrack = TrackPropagators::PropagateLCIOToNewRef(trkClosestToIP, 0.0, 0.0, 0.0) ;
 
-      //      IMPL::TrackImpl* trkAtIP = this->PropegateLCToNewRef(trkClosestToIP, 0.0, 0.0, 0.0) ;
-      IMPL::TrackImpl* trkAtIP = TrackPropagators::PropagateLCIOToNewRef(trkClosestToIP, 0.0, 0.0, 0.0) ;
-
-      EVENT::FloatVec covAtIP = trkAtIP->getCovMatrix() ;
+      EVENT::FloatVec covAtIP = _ipPropagatedLCTrack->getCovMatrix() ;
       
       const float* refClosestToIP = trkClosestToIP->getReferencePoint() ;
 
       streamlog_out( DEBUG ) << " MarlinDelphi track parameters propagated to IP "  
-			     << " chi2/ndf " <<  trkAtIP->getChi2() / trkAtIP->getNdf()  
-			     << " chi2 " <<  trkAtIP->getChi2() << std::endl 
+			     << " chi2/ndf " <<  _ipPropagatedLCTrack->getChi2() / _ipPropagatedLCTrack->getNdf()  
+			     << " chi2 " <<  _ipPropagatedLCTrack->getChi2() << std::endl 
 	
-			     << "\t D0 "          <<  trkAtIP->getD0()         <<  "[+/-" << sqrt( covAtIP[0] ) << "] " 
-			     << "\t Phi :"        <<  trkAtIP->getPhi()        <<  "[+/-" << sqrt( covAtIP[2] ) << "] " 
-			     << "\t Omega "       <<  trkAtIP->getOmega()      <<  "[+/-" << sqrt( covAtIP[5] ) << "] " 
-			     << "\t Z0 "          <<  trkAtIP->getZ0()         <<  "[+/-" << sqrt( covAtIP[9] ) << "] " 
-			     << "\t tan(Lambda) " <<  trkAtIP->getTanLambda()  <<  "[+/-" << sqrt( covAtIP[14]) << "] " 
+			     << "\t D0 "          <<  _ipPropagatedLCTrack->getD0()         <<  "[+/-" << sqrt( covAtIP[0] ) << "] " 
+			     << "\t Phi :"        <<  _ipPropagatedLCTrack->getPhi()        <<  "[+/-" << sqrt( covAtIP[2] ) << "] " 
+			     << "\t Omega "       <<  _ipPropagatedLCTrack->getOmega()      <<  "[+/-" << sqrt( covAtIP[5] ) << "] " 
+			     << "\t Z0 "          <<  _ipPropagatedLCTrack->getZ0()         <<  "[+/-" << sqrt( covAtIP[9] ) << "] " 
+			     << "\t tan(Lambda) " <<  _ipPropagatedLCTrack->getTanLambda()  <<  "[+/-" << sqrt( covAtIP[14]) << "] " 
 	
-			     << "\t ref : [" << refClosestToIP[0] << ", " << refClosestToIP[1] << ", "  << refClosestToIP[2] 
+			     << "\t from ref : [" << refClosestToIP[0] << ", " << refClosestToIP[1] << ", "  << refClosestToIP[2] 
 			     << " - r: " << std::sqrt( refClosestToIP[0]*refClosestToIP[0]+refClosestToIP[1]*refClosestToIP[1] ) << "]" 
 	
 			     << std::endl ;
 
-
-      // create track to be returned
-      _currentLCTrack = new IMPL::TrackImpl();
       
-      //  this is for incomming tracks ...
-      double omega     =  param[0] ;            
-      double tanLambda =  param[1] ;
-      double phi0      =  param[2] ;
-      double d0        =  param[3] ;
-      double z0        =  param[4] ;
+      _lcio_tracks.push_back(_ipPropagatedLCTrack) ;
       
-      _currentLCTrack->setD0( d0 ) ;  
-      _currentLCTrack->setPhi( phi0  ) ;   
-      _currentLCTrack->setOmega( omega  ) ;
-      _currentLCTrack->setZ0( z0  ) ;  
-      _currentLCTrack->setTanLambda( tanLambda ) ;  
-      
-      _currentLCTrack->setChi2( chi2 ) ;
-      
-      float pivot[3] ;
-      pivot[0] =  PCA[0] + d0 * sin(phi0) ;
-      pivot[1] =  PCA[1] - d0 * cos(phi0) ;
-      pivot[2] =  PCA[2]  ;
-      
-      _currentLCTrack->setReferencePoint( pivot ) ;
-      _currentLCTrack->setIsReferencePointPCA(false);
-
-      EVENT::FloatVec cov( 15 )  ; 
-      cov[ 0] =  eparam[ 0] ; //   d0,   d0
-		        
-      cov[ 1] =  eparam[ 1] ; //   phi0, d0
-      cov[ 2] =  eparam[ 2] ; //   phi0, phi
-		        
-      cov[ 3] =  eparam[ 3] ; //   omega, d0
-      cov[ 4] =  eparam[ 4] ; //   omega, phi
-      cov[ 5] =  eparam[ 5] ; //   omega, omega
-		        
-      cov[ 6] =  eparam[ 6] ; //   z0  , d0
-      cov[ 7] =  eparam[ 7] ; //   z0  , phi
-      cov[ 8] =  eparam[ 8] ; //   z0  , omega
-      cov[ 9] =  eparam[ 9] ; //   z0  , z0
-		        
-      cov[10] =  eparam[10] ; //   tanl, d0
-      cov[11] =  eparam[11] ; //   tanl, phi
-      cov[12] =  eparam[12] ; //   tanl, omega
-      cov[13] =  eparam[13] ; //   tanl, z0
-      cov[14] =  eparam[14] ; //   tanl, tanl
-
-      _currentLCTrack->setCovMatrix( cov ) ;
-
-      streamlog_out(DEBUG) << "MarlinDelphiTrack::fit()  _currentLCTrack = " << _currentLCTrack << std::endl ;
+      streamlog_out(DEBUG) << "MarlinDelphiTrack::fit()  _ipPropagatedLCTrack = " << _ipPropagatedLCTrack << std::endl ;
 
       _fit_done = true ;
 
@@ -423,66 +377,88 @@ namespace marlin_delphiF77{
   }
 
 
-
   IMPL::TrackImpl* MarlinDelphiTrack::getIPFit(){
 
     streamlog_out(DEBUG) << "MarlinDelphiTrack::getIPFit() called " << std::endl ;
 
-    streamlog_out(DEBUG) << "MarlinDelphiTrack::getIPFit()  _currentLCTrack = " << _currentLCTrack << std::endl ;
+    if ( _fit_done == false ) this->fit(false) ;
 
-    IMPL::TrackImpl* trk = _currentLCTrack ;
+    streamlog_out(DEBUG) << "MarlinDelphiTrack::getIPFit()  _ipPropagatedLCTrack = " << _ipPropagatedLCTrack << std::endl ;
 
-//  get cov matrix for printing 
-    EVENT::FloatVec cov = trk->getCovMatrix() ;
+    if ( _ipPropagatedLCTrack == NULL ) return NULL ;
 
-    float ref[3] ;
+    // create NEW track to be returned. The responsiblitiy for deletion lies with the caller.
+    IMPL::TrackImpl* trkAtIP = new IMPL::TrackImpl ;
 
-    if(  trk->isReferencePointPCA() == true ) {
-      ref[0] = ref[1] = ref[2] = 0.0 ;
-    }
-    else {
-      const float* pivot = trk->getReferencePoint() ;
-      ref[0] = pivot[0] ;
-      ref[1] = pivot[1] ;
-      ref[2] = pivot[2] ;
-    }
+    trkAtIP->setD0( _ipPropagatedLCTrack->getD0() ) ;  
+    trkAtIP->setPhi( _ipPropagatedLCTrack->getPhi() ) ;   
+    trkAtIP->setOmega( _ipPropagatedLCTrack->getOmega() ) ;
+    trkAtIP->setZ0( _ipPropagatedLCTrack->getZ0() ) ;  
+    trkAtIP->setTanLambda( _ipPropagatedLCTrack->getTanLambda() ) ;  
+    
+    trkAtIP->setChi2( _ipPropagatedLCTrack->getChi2() ) ;
+    trkAtIP->setNdf( _ipPropagatedLCTrack->getNdf() ) ;
+
+    trkAtIP->setReferencePoint( const_cast<float*>(_ipPropagatedLCTrack->getReferencePoint()) ) ;
+    trkAtIP->setIsReferencePointPCA(false) ;
+
+    trkAtIP->setCovMatrix( _ipPropagatedLCTrack->getCovMatrix() ) ;
+
+    //  get cov matrix for printing 
+    EVENT::FloatVec cov = trkAtIP->getCovMatrix() ;
 
     // add the hits. Currently all hits are added and no bookeeping is made of which hits failed to be included in the fit.
     EVENT::TrackerHitVec::iterator it = _lcioHits.begin();
   
     for( it = _lcioHits.begin() ; it != _lcioHits.end() ; ++it )
       { 
-	trk->addHit( *it ) ;
+	trkAtIP->addHit( *it ) ;
       }
   
-    streamlog_out( DEBUG ) << " MarlinDelphi track parameters: "
-			   << " chi2/ndf " <<  trk->getChi2() /  trk->getNdf()  
-			   << " chi2 " <<  trk->getChi2() << std::endl 
+    streamlog_out( DEBUG ) << " MarlinDelphi track parameters at IP: "
+			   << " chi2/ndf " <<  trkAtIP->getChi2() /  trkAtIP->getNdf()  
+			   << " chi2 " <<  trkAtIP->getChi2() << std::endl 
     
-			   << "\t D0 "          <<  trk->getD0()         <<  "[+/-" << sqrt( cov[0] ) << "] " 
-			   << "\t Phi :"        <<  trk->getPhi()        <<  "[+/-" << sqrt( cov[2] ) << "] " 
-			   << "\t Omega "       <<  trk->getOmega()      <<  "[+/-" << sqrt( cov[5] ) << "] " 
-			   << "\t Z0 "          <<  trk->getZ0()         <<  "[+/-" << sqrt( cov[9] ) << "] " 
-			   << "\t tan(Lambda) " <<  trk->getTanLambda()  <<  "[+/-" << sqrt( cov[14]) << "] " 
+			   << "\t D0 "          <<  trkAtIP->getD0()         <<  "[+/-" << sqrt( cov[0] ) << "] " 
+			   << "\t Phi :"        <<  trkAtIP->getPhi()        <<  "[+/-" << sqrt( cov[2] ) << "] " 
+			   << "\t Omega "       <<  trkAtIP->getOmega()      <<  "[+/-" << sqrt( cov[5] ) << "] " 
+			   << "\t Z0 "          <<  trkAtIP->getZ0()         <<  "[+/-" << sqrt( cov[9] ) << "] " 
+			   << "\t tan(Lambda) " <<  trkAtIP->getTanLambda()  <<  "[+/-" << sqrt( cov[14]) << "] " 
     
-			   << "\t ref : [" << ref[0] << ", " << ref[1] << ", "  << ref[2] 
-			   << " - r: " << std::sqrt( ref[0]*ref[0]+ref[1]*ref[1] ) << "]" 
 			   << std::endl ;
-  
-
-  
-    return trk;
+    
+    return trkAtIP ;
 
   }
 
 
+  IMPL::TrackImpl* MarlinDelphiTrack::getNearestFit(float* point){
 
-IMPL::TrackImpl* MarlinDelphiTrack::getNearestFit(float* point){
-  //
+    if ( _fit_done == false ) this->fit(false) ;
 
+    IMPL::TrackImpl* trk = NULL ;
+    float mindist2 = DBL_MAX ;
+    
+    for( unsigned int i=0; i < _lcio_tracks.size(); ++i) {
+      
+      const float* ref = _lcio_tracks[i]->getReferencePoint() ;
+      
+      const float deltaX = ref[0] - point[0] ;
+      const float deltaY = ref[1] - point[1] ;
+      const float deltaZ = ref[2] - point[2] ;
+      
+      const float dist2 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ ; 
 
-  return NULL ; // not yet implemented
-} 
+      if( mindist2 > dist2 ) {
+	trk = _lcio_tracks[i] ;
+	mindist2 = dist2 ;
+      }
+      
+    }
+    
+    return trk ; 
+
+  } 
 
 
 
