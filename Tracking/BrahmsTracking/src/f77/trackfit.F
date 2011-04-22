@@ -48,7 +48,7 @@
       SUBROUTINE TRACKFIT(NHITS,IDET,ITYPE,XHIT,YHIT,ZHIT,
      *                    RCOV,ZCOV,REF,
      *                    IERR,RFIT,RFITE,CHI2FIT,NDFFIT,NOUTL,
-     *                    IDOUTL,FITCODE)
+     *                    IDOUTL,FITCODE,STOREEXTRAFITS)
 **********************************************************************
 *
 *     subroutine TRACKFIT (Interface to MarlinReco)
@@ -69,6 +69,7 @@
 *                    (ignored for planar detector)
 *             REF    - reference track parameters in TANAGRA format.
 *                      only used if REF(1).NE.0.0
+*             STOREEXTRAFITS - store the fits at the extrapolation surfaces in the c++ tktkbank
 *     output: IERR    - 0 if successful
 *             RFIT    - fitted track parameters at reference point 
 *                       as defined by TANAGRA convention
@@ -121,7 +122,8 @@ C.....max number of hits per track
       REAL XCOV(15)
       INTEGER ICOV
       INTEGER TRY
-
+      INTEGER STOREEXTRAFITS
+      
       REAL CHI2FIT
       INTEGER NDFFIT
       INTEGER K,ID,IERR1,IERR2,ITSREF(MXTS)
@@ -581,26 +583,26 @@ C      WRITE(*,*) "REFRAD = ", REFRAD
 
 
 C SJA before filling the TKbanks here we should really check if they are empty ...
-
-      DO 603 IX=1,NEXS
-         IF (IFLX(IX).EQ.0) THEN
-            IF (TYPX(IX).EQ.'CYLI') THEN
-               FITCODE = 1
-            ELSE
-               FITCODE = 0
+      IF( STOREEXTRAFITS.GT.0 ) THEN
+         DO 603 IX=1,NEXS
+            IF (IFLX(IX).EQ.0) THEN
+               IF (TYPX(IX).EQ.'CYLI') THEN
+                  FITCODE = 1
+               ELSE
+                  FITCODE = 0
+               ENDIF
+               DO ICOV=1, 15
+                  XCOV(ICOV) = (DATX(ICOV+6,IX))
+               ENDDO
+               
+               TRY = TKMKTKCPP(0,0,FITCODE,0,
+     +              0,0,0,NDFFIT,CHI2FIT,
+     +              0,0,0,0,0,
+     +              0,0,DATX(1,IX),DATX(2,IX),DATX(3,IX),
+     +              DATX(4,IX),DATX(5,IX),DATX(6,IX),XCOV)
             ENDIF
-            DO ICOV=1, 15
-               XCOV(ICOV) = (DATX(ICOV+6,IX))
-            ENDDO
-            
-            TRY = TKMKTKCPP(0,0,FITCODE,0,
-     +           0,0,0,NDFFIT,CHI2FIT,
-     +           0,0,0,0,0,
-     +           0,0,DATX(1,IX),DATX(2,IX),DATX(3,IX),
-     +           DATX(4,IX),DATX(5,IX),DATX(6,IX),XCOV)
-         ENDIF
- 603  CONTINUE
-
+ 603     CONTINUE
+      ENDIF
 C      DO IX=1,24
 C         WRITE(*,153) IX,DATX(IX,IXPNT)
 C      ENDDO

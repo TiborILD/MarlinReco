@@ -21,7 +21,7 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
 			      float chi2PrefitCut, // inputs 
 			      float * x, float * y, float * z, float * RPReso, float * ZReso, // inputs 
 			      float * param, float * eparam, float * RefPoint, float & chi2, int & ndf,
-			      float & chi2rphi, float & chi2z, int * lhits) { // outputs
+			      float & chi2rphi, float & chi2z, int * lhits, int storeExtraFits) { // outputs
 
   // Create and fill up some intermediate arrays
   // needed to perform fits -->
@@ -220,7 +220,7 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
 
   marlin_delphiF77::MaterialDB_F77::Instance()->switchONMaterial();
   trackfit_(nfit,iDet,iTyp,xhit,yhit,zhit,rphireso,zreso,ref,ierr,
-	    rfit,rfite,chi2,ndf,noutl,idoutl,fitCode);  
+	    rfit,rfite,chi2,ndf,noutl,idoutl,fitCode,storeExtraFits);  
   
   if (ierr!=0) noutl = 0;
 
@@ -266,7 +266,7 @@ int MarlinTrackFit::DoFitting(int useExtraPoint, int fitOpt, // inputs
     if (nfit>=3) {
       marlin_delphiF77::MaterialDB_F77::Instance()->switchONMaterial();
       trackfit_(nfit,iDet,iTyp,xhit,yhit,zhit,rphireso,zreso,ref,ierr,
-		rfit,rfite,chi2,ndf,noutl,idoutl,fitCode);  
+		rfit,rfite,chi2,ndf,noutl,idoutl,fitCode,storeExtraFits);  
       if (ierr!=0) noutl = 0;
       int nh = nfit;
       if (noutl<nfit) 

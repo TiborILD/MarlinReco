@@ -18,7 +18,7 @@ extern "C" {
   void trackfit_(int & nhits, int * idet, int * itype, 
 		 float * x, float * y, float * z, float * phireso, float * zreso,
 		 float * ref, int & ierr, float * rfit, float * rfite, float & chi2, int & ndf,
-		 int & noutl, int * idoutl, int & fitcode);
+		 int & noutl, int * idoutl, int & fitcode, int & storeExtraFits);
   
 }
 
@@ -119,7 +119,7 @@ class MarlinTrackFit {
 		float chi2PrefitCut, // inputs 
 		float * x, float * y, float * z, float * RPReso, float * ZReso, // inputs 
 		float * param, float * eparam, float * RefPoint, float & chi2, int & ndf, // outputs
-		float & chi2rphi, float & chi2z,int * lhits); // outputs
+		float & chi2rphi, float & chi2z,int * lhits, int storeExtraFits=0); // outputs
 
   /**
    * Method fills covariance matrix according to 

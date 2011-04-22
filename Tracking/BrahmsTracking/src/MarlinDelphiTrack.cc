@@ -223,12 +223,26 @@ namespace marlin_delphiF77{
 
       MarlinTrackFit mtrk;
 
+      const int storeExtraFits = 1 ;
+
+      //SJA:FIXME: dofitting is only used at the moment to passed the inputs to the F77 code. The output fits are retreived via the tktkbanks.
+
       int error = mtrk.DoFitting( useExtraPoint, fitOpt, 
 				  nhits, bField, idet, itype, 
 				  chi2PrefitCut, 
 				  xhit, yhit, zhit, rphireso, zreso, 
 				  param, eparam, PCA, chi2, ndf,
-				  chi2rphi, chi2z, lhits) ;
+				  chi2rphi, chi2z, lhits, storeExtraFits) ;
+
+      if( error != 0 ){
+	streamlog_out( DEBUG ) << "MarlinDelphiTrack::fit(): DoFitting() returned error code " << error << std::endl ;
+	return false ;
+      }
+
+      if( Tk_Tk_Bank::Instance().size() == 0 ){
+	streamlog_out( DEBUG ) << "MarlinDelphiTrack::fit(): Tk_Tk_Bank has size 0 " << std::endl ;
+	return false ;
+      }
 
       streamlog_out( DEBUG ) << "MarlinDelphiTrack::fit(): track parameters returned by DoFitting(): "
 			     << " chi2/ndf " <<  chi2 /  ndf  
@@ -341,6 +355,7 @@ namespace marlin_delphiF77{
 				 << std::endl ;
 	  
 	}
+
       
       _ipPropagatedLCTrack = TrackPropagators::PropagateLCIOToNewRef(trkClosestToIP, 0.0, 0.0, 0.0) ;
 
