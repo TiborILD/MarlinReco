@@ -68,7 +68,7 @@ namespace marlin_delphiF77{
 	streamlog_out(DEBUG3) << "hit " << it - _lcioHits.begin() 
 			      << " has type " << trkhit->getType() 
 			      << " and layer "
-			      << trkhit->ext<ILDDetectorIDs::HitInfo>()->layerID
+			      << layerID
 			      << std::endl ;
       
 
@@ -447,22 +447,22 @@ namespace marlin_delphiF77{
   }
 
 
-  IMPL::TrackImpl* MarlinDelphiTrack::getNearestFit(float* point){
+  IMPL::TrackImpl* MarlinDelphiTrack::getNearestFitToPoint(float* point){
 
     if ( _fit_done == false ) this->fit(false) ;
 
     IMPL::TrackImpl* trk = NULL ;
-    float mindist2 = DBL_MAX ;
+    double mindist2 = DBL_MAX ;
     
     for( unsigned int i=0; i < _lcio_tracks.size(); ++i) {
       
       const float* ref = _lcio_tracks[i]->getReferencePoint() ;
       
-      const float deltaX = ref[0] - point[0] ;
-      const float deltaY = ref[1] - point[1] ;
-      const float deltaZ = ref[2] - point[2] ;
+      const double deltaX = ref[0] - point[0] ;
+      const double deltaY = ref[1] - point[1] ;
+      const double deltaZ = ref[2] - point[2] ;
       
-      const float dist2 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ ; 
+      const double dist2 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ ; 
 
       if( mindist2 > dist2 ) {
 	trk = _lcio_tracks[i] ;
@@ -474,6 +474,62 @@ namespace marlin_delphiF77{
     return trk ; 
 
   } 
+  
+  IMPL::TrackImpl* MarlinDelphiTrack::getNearestFitToCylinder(float r) {
+    
+    if ( _fit_done == false ) this->fit(false) ;
+
+    IMPL::TrackImpl* trk = NULL ;
+    double mindist2 = DBL_MAX ;
+    
+    for( unsigned int i=0; i < _lcio_tracks.size(); ++i) {
+      
+      const float* ref = _lcio_tracks[i]->getReferencePoint() ;
+
+      const double r2_point = ref[0] * ref[0] + ref[1] * ref[1] ;
+      
+      const double delta_r2 =  r2_point - r*r ;
+
+      const double dist2 = delta_r2 * delta_r2;
+      
+      if( mindist2 >  dist2 ) {
+	trk = _lcio_tracks[i] ;
+	mindist2 = dist2 ;
+      }
+      
+    }
+    
+    return trk ; 
+
+  }
+
+
+  IMPL::TrackImpl* MarlinDelphiTrack::getNearestFitToZPlane(float z) {
+    
+    if ( _fit_done == false ) this->fit(false) ;
+    
+    IMPL::TrackImpl* trk = NULL ;
+    double mindist2 = DBL_MAX ;
+    
+    for( unsigned int i=0; i < _lcio_tracks.size(); ++i) {
+      
+      const float* ref = _lcio_tracks[i]->getReferencePoint() ;
+      
+      const double deltaZ = ref[2] - z ;
+      
+      const double dist2 = deltaZ*deltaZ ; 
+      
+      if( mindist2 > dist2 ) {
+	trk = _lcio_tracks[i] ;
+	mindist2 = dist2 ;
+      }
+      
+    }
+    
+    return trk ; 
+
+  }
+
 
 
 
