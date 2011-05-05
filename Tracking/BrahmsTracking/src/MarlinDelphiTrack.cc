@@ -65,7 +65,7 @@ namespace marlin_delphiF77{
 	  layerID = trkhit->ext<ILDDetectorIDs::HitInfo>()->layerID ;
 	}
 
-	streamlog_out(DEBUG3) << "hit " << it - _lcioHits.begin() 
+	streamlog_out(DEBUG1) << "hit " << it - _lcioHits.begin() 
 			      << " has type " << trkhit->getType() 
 			      << " and layer "
 			      << layerID
@@ -74,36 +74,36 @@ namespace marlin_delphiF77{
 
 	if( (layerID / ILDDetectorIDs::DetID::Factor) == ILDDetectorIDs::DetID::VXD ){	
 
-	  streamlog_out(DEBUG3) << "MarlinDelphiTrack::MarlinDelphiTrack add VXD hit with layerID = " << layerID << std::endl ; 
+	  streamlog_out(DEBUG1) << "MarlinDelphiTrack::MarlinDelphiTrack add VXD hit with layerID = " << layerID << std::endl ; 
 
 	}
 	else if( (layerID / ILDDetectorIDs::DetID::Factor) == ILDDetectorIDs::DetID::SIT ){	
 
-	  streamlog_out(DEBUG3) << "MarlinDelphiTrack::MarlinDelphiTrack add SIT hit with layerID = " << layerID << std::endl ; 
+	  streamlog_out(DEBUG1) << "MarlinDelphiTrack::MarlinDelphiTrack add SIT hit with layerID = " << layerID << std::endl ; 
 
 	}
 
 	else if( (layerID / ILDDetectorIDs::DetID::Factor) == ILDDetectorIDs::DetID::TPC ){	
 
-	  streamlog_out(DEBUG3) << "MarlinDelphiTrack::MarlinDelphiTrack add TPC hit with layerID = " << layerID << std::endl ; 
+	  streamlog_out(DEBUG1) << "MarlinDelphiTrack::MarlinDelphiTrack add TPC hit with layerID = " << layerID << std::endl ; 
 
 	}
 
 	else if( (layerID / ILDDetectorIDs::DetID::Factor) == ILDDetectorIDs::DetID::FTD ){	
 
-	  streamlog_out(DEBUG3) << "MarlinDelphiTrack::MarlinDelphiTrack add FTD hit with layerID = " << layerID << std::endl ; 
+	  streamlog_out(DEBUG1) << "MarlinDelphiTrack::MarlinDelphiTrack add FTD hit with layerID = " << layerID << std::endl ; 
 
 	}
 
 	else if( (layerID / ILDDetectorIDs::DetID::Factor) == ILDDetectorIDs::DetID::SET ){	
 
-	  streamlog_out(DEBUG3) << "MarlinDelphiTrack::MarlinDelphiTrack add SET hit with layerID = " << layerID << std::endl ; 
+	  streamlog_out(DEBUG1) << "MarlinDelphiTrack::MarlinDelphiTrack add SET hit with layerID = " << layerID << std::endl ; 
 
 	}
 
 	else if( (layerID / ILDDetectorIDs::DetID::Factor) == ILDDetectorIDs::DetID::ETD ){	
 
-	  streamlog_out(DEBUG3) << "MarlinDelphiTrack::MarlinDelphiTrack add ETD hit with layerID = " << layerID << std::endl ; 
+	  streamlog_out(DEBUG1) << "MarlinDelphiTrack::MarlinDelphiTrack add ETD hit with layerID = " << layerID << std::endl ; 
 
 	}
 	
@@ -131,7 +131,7 @@ namespace marlin_delphiF77{
 
   bool MarlinDelphiTrack::fit( bool fitDirection ) {
 
-    streamlog_out(DEBUG) << "MarlinDelphiTrack::fit() called " << std::endl ;
+    streamlog_out(DEBUG2) << "MarlinDelphiTrack::fit() called " << std::endl ;
 
     MaterialDB_F77::Instance()->switchONMaterial();
 
@@ -235,16 +235,16 @@ namespace marlin_delphiF77{
 				  chi2rphi, chi2z, lhits, storeExtraFits) ;
 
       if( error != 0 ){
-	streamlog_out( DEBUG ) << "MarlinDelphiTrack::fit(): DoFitting() returned error code " << error << std::endl ;
+	streamlog_out( DEBUG4 ) << "MarlinDelphiTrack::fit(): DoFitting() returned error code " << error << std::endl ;
 	return false ;
       }
 
       if( Tk_Tk_Bank::Instance().size() == 0 ){
-	streamlog_out( DEBUG ) << "MarlinDelphiTrack::fit(): Tk_Tk_Bank has size 0 " << std::endl ;
+	streamlog_out( DEBUG4 ) << "MarlinDelphiTrack::fit(): Tk_Tk_Bank has size 0 " << std::endl ;
 	return false ;
       }
 
-      streamlog_out( DEBUG ) << "MarlinDelphiTrack::fit(): track parameters returned by DoFitting(): "
+      streamlog_out( DEBUG3 ) << "MarlinDelphiTrack::fit(): track parameters returned by DoFitting(): "
 			     << " chi2/ndf " <<  chi2 /  ndf  
 			     << " chi2 " <<  chi2 << std::endl 
     
@@ -258,7 +258,7 @@ namespace marlin_delphiF77{
 			     << "\t\t PCA: " << PCA[0] << "\t" << PCA[1] << "\t" <<  PCA[2] 
 			     << std::endl ;
 
-      streamlog_out( DEBUG ) << "MarlinDelphiTrack::fit(): "
+      streamlog_out( DEBUG4 ) << "MarlinDelphiTrack::fit(): "
 			     << "number of extrapolation surfaces = " << Tk_Tk_Bank::Instance().size()
 			     << std::endl ;    
 
@@ -333,7 +333,7 @@ namespace marlin_delphiF77{
 	    rMinSurf = ex_tanagra_param[0] ;
 	  }
 
-	  streamlog_out( DEBUG ) << " MarlinDelphi track parameters: for surface " << iext << " at R = " << ex_tanagra_param[0] * 10.0 << " mm "  
+	  streamlog_out( DEBUG2 ) << " MarlinDelphi track parameters: for surface " << iext << " at R = " << ex_tanagra_param[0] * 10.0 << " mm "  
 				 << " chi2/ndf " <<  trkAtSurf->getChi2() /  trkAtSurf->getNdf()  
 				 << " chi2 " <<  trkAtSurf->getChi2() << std::endl 
 	    
@@ -363,25 +363,25 @@ namespace marlin_delphiF77{
       
       const float* refClosestToIP = trkClosestToIP->getReferencePoint() ;
 
-      streamlog_out( DEBUG ) << " MarlinDelphi track parameters propagated to IP "  
-			     << " chi2/ndf " <<  _ipPropagatedLCTrack->getChi2() / _ipPropagatedLCTrack->getNdf()  
-			     << " chi2 " <<  _ipPropagatedLCTrack->getChi2() << std::endl 
+      streamlog_out( DEBUG3 ) << " MarlinDelphi track parameters propagated to IP "  
+			      << " chi2/ndf " <<  _ipPropagatedLCTrack->getChi2() / _ipPropagatedLCTrack->getNdf()  
+			      << " chi2 " <<  _ipPropagatedLCTrack->getChi2() << std::endl 
 	
-			     << "\t D0 "          <<  _ipPropagatedLCTrack->getD0()         <<  "[+/-" << sqrt( covAtIP[0] ) << "] " 
-			     << "\t Phi :"        <<  _ipPropagatedLCTrack->getPhi()        <<  "[+/-" << sqrt( covAtIP[2] ) << "] " 
-			     << "\t Omega "       <<  _ipPropagatedLCTrack->getOmega()      <<  "[+/-" << sqrt( covAtIP[5] ) << "] " 
-			     << "\t Z0 "          <<  _ipPropagatedLCTrack->getZ0()         <<  "[+/-" << sqrt( covAtIP[9] ) << "] " 
-			     << "\t tan(Lambda) " <<  _ipPropagatedLCTrack->getTanLambda()  <<  "[+/-" << sqrt( covAtIP[14]) << "] " 
+			      << "\t D0 "          <<  _ipPropagatedLCTrack->getD0()         <<  "[+/-" << sqrt( covAtIP[0] ) << "] " 
+			      << "\t Phi :"        <<  _ipPropagatedLCTrack->getPhi()        <<  "[+/-" << sqrt( covAtIP[2] ) << "] " 
+			      << "\t Omega "       <<  _ipPropagatedLCTrack->getOmega()      <<  "[+/-" << sqrt( covAtIP[5] ) << "] " 
+			      << "\t Z0 "          <<  _ipPropagatedLCTrack->getZ0()         <<  "[+/-" << sqrt( covAtIP[9] ) << "] " 
+			      << "\t tan(Lambda) " <<  _ipPropagatedLCTrack->getTanLambda()  <<  "[+/-" << sqrt( covAtIP[14]) << "] " 
 	
-			     << "\t from ref : [" << refClosestToIP[0] << ", " << refClosestToIP[1] << ", "  << refClosestToIP[2] 
-			     << " - r: " << std::sqrt( refClosestToIP[0]*refClosestToIP[0]+refClosestToIP[1]*refClosestToIP[1] ) << "]" 
+			      << "\t from ref : [" << refClosestToIP[0] << ", " << refClosestToIP[1] << ", "  << refClosestToIP[2] 
+			      << " - r: " << std::sqrt( refClosestToIP[0]*refClosestToIP[0]+refClosestToIP[1]*refClosestToIP[1] ) << "]" 
 	
-			     << std::endl ;
+			      << std::endl ;
 
       
       _lcio_tracks.push_back(_ipPropagatedLCTrack) ;
       
-      streamlog_out(DEBUG) << "MarlinDelphiTrack::fit()  _ipPropagatedLCTrack = " << _ipPropagatedLCTrack << std::endl ;
+      streamlog_out(DEBUG3) << "MarlinDelphiTrack::fit()  _ipPropagatedLCTrack = " << _ipPropagatedLCTrack << std::endl ;
 
       _fit_done = true ;
 
@@ -394,11 +394,11 @@ namespace marlin_delphiF77{
 
   IMPL::TrackImpl* MarlinDelphiTrack::getIPFit(){
 
-    streamlog_out(DEBUG) << "MarlinDelphiTrack::getIPFit() called " << std::endl ;
+    streamlog_out(DEBUG3) << "MarlinDelphiTrack::getIPFit() called " << std::endl ;
 
     if ( _fit_done == false ) this->fit(false) ;
 
-    streamlog_out(DEBUG) << "MarlinDelphiTrack::getIPFit()  _ipPropagatedLCTrack = " << _ipPropagatedLCTrack << std::endl ;
+    streamlog_out(DEBUG3) << "MarlinDelphiTrack::getIPFit()  _ipPropagatedLCTrack = " << _ipPropagatedLCTrack << std::endl ;
 
     if ( _ipPropagatedLCTrack == NULL ) return NULL ;
 
@@ -430,7 +430,7 @@ namespace marlin_delphiF77{
 	trkAtIP->addHit( *it ) ;
       }
   
-    streamlog_out( DEBUG ) << " MarlinDelphi track parameters at IP: "
+    streamlog_out( DEBUG3 ) << " MarlinDelphi track parameters at IP: "
 			   << " chi2/ndf " <<  trkAtIP->getChi2() /  trkAtIP->getNdf()  
 			   << " chi2 " <<  trkAtIP->getChi2() << std::endl 
     
