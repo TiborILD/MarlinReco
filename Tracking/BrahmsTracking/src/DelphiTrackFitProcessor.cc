@@ -133,19 +133,23 @@ void DelphiTrackFitProcessor::processEvent( LCEvent * evt ) {
 	  TrackImpl* refittedTrack = marlin_trk->getIPFit() ;
 
 	  float point[3] ;
-	  point[0] = point[1] = point[2] = 0.0 ; // IP
-//	  point[0] = -1806. ;
-//	  point[1] = -13.0 ;
-//	  point[2] = 63.0 ; 
+	  //	  point[0] = point[1] = point[2] = 0.0 ; // IP
+	  point[0] = -1806. ;
+	  point[1] = -13.0 ;
+	  point[2] = 63.0 ; 
 
-	  TrackImpl* nearestFit = marlin_trk->getNearestFit(point) ;	
+	  float r_cylinder = 500.0 ;
+
+	  //	  TrackImpl* nearestFit = marlin_trk->getNearestFitToPoint(point) ;	
+	  TrackImpl* nearestFit = marlin_trk->getNearestFitToCylinder(r_cylinder) ;	
 
 	  if(nearestFit){
 	    
 	    //  get ref and cov matrix for printing 
 	    const float* ref = nearestFit->getReferencePoint() ;
 	    EVENT::FloatVec cov = nearestFit->getCovMatrix() ;
-	    streamlog_out( DEBUG ) << " MarlinDelphi track parameters: nearest to " << point[0] << " " << point[1] <<  " " << point[2] << " : "
+	    //	    streamlog_out( DEBUG ) << " MarlinDelphi track parameters: nearest to " << point[0] << " " << point[1] <<  " " << point[2] << " : "
+	    streamlog_out( DEBUG ) << " MarlinDelphi track parameters: nearest to cylinder " << r_cylinder << " : "
 				   << " chi2/ndf " <<  nearestFit->getChi2() /  nearestFit->getNdf()  
 				   << " chi2 " <<  nearestFit->getChi2() << std::endl 
 	      
@@ -157,11 +161,51 @@ void DelphiTrackFitProcessor::processEvent( LCEvent * evt ) {
 				   << "\t ref : [" << ref[0] << ", " << ref[1] << ", "  << ref[2] << "]"     
 				   << std::endl ;
 
+	    // create NEW track to be returned. The responsiblitiy for deletion lies with the caller.
+	    IMPL::TrackImpl* copyTrk = new IMPL::TrackImpl ;
+	    
+	    copyTrk->setD0( nearestFit->getD0() ) ;  
+	    copyTrk->setPhi( nearestFit->getPhi() ) ;   
+	    copyTrk->setOmega( nearestFit->getOmega() ) ;
+	    copyTrk->setZ0( nearestFit->getZ0() ) ;  
+	    copyTrk->setTanLambda( nearestFit->getTanLambda() ) ;  
+	    
+	    copyTrk->setChi2( nearestFit->getChi2() ) ;
+	    copyTrk->setNdf( nearestFit->getNdf() ) ;
+	    
+	    copyTrk->setReferencePoint( const_cast<float*>(nearestFit->getReferencePoint()) ) ;
+	    copyTrk->setIsReferencePointPCA(false) ;
+	    
+	    copyTrk->setCovMatrix( nearestFit->getCovMatrix() ) ;
+	    
+	    copyTrk->subdetectorHitNumbers().resize(12);
+	    for ( unsigned int detIndex = 0 ;  detIndex < copyTrk->subdetectorHitNumbers().size() ; detIndex++ ) 
+	      {
+		copyTrk->subdetectorHitNumbers()[detIndex] = track->getSubdetectorHitNumbers()[detIndex] ;
+	      }
+
+	    // add the hits. Currently all hits are added and no bookeeping is made of which hits failed to be included in the fit.
+	    EVENT::TrackerHitVec lcioHits = track->getTrackerHits();
+	    EVENT::TrackerHitVec::iterator it = lcioHits.begin();
+	    
+	    for( it = lcioHits.begin() ; it != lcioHits.end() ; ++it )
+	      { 
+		copyTrk->addHit( *it ) ;
+	      }
+	    
+	    //	    bool addtrack = true;
+	    bool addtrack = true;
+	    if( addtrack ) {
+	      trackVec->addElement( copyTrk ) ; // add it to the event ... 
+	    } else {
+	      delete copyTrk ; // or delete it 
+	    }
 
 	  }
 	  else {
 	    streamlog_out( DEBUG ) << " MarlinDelphi track parameters not present for : " << point[0] << " " << point[1] <<  " " << point[2] << std::endl ;
 	  }
+
 
 	  //	//SJA:FIXME: This has to go away. The use of hardcoded number here is completely error prone ...
 	  refittedTrack->subdetectorHitNumbers().resize(12);
@@ -170,8 +214,8 @@ void DelphiTrackFitProcessor::processEvent( LCEvent * evt ) {
 	      refittedTrack->subdetectorHitNumbers()[detIndex] = track->getSubdetectorHitNumbers()[detIndex] ;
 	    }
 	  
-	  trackVec->addElement( refittedTrack );
-
+	  //	  trackVec->addElement( refittedTrack );
+	  delete refittedTrack;
 	}
 	
 	delete marlin_trk;
