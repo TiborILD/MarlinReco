@@ -256,6 +256,8 @@ namespace marlin_delphiF77{
     try{
     
       const gear::TPCParameters& gearTPC = Global::GEAR->getTPCParameters() ;
+      const gear::PadRowLayout2D& padLayout = gearTPC.getPadLayout() ;
+      const gear::Vector2D padCoord = padLayout.getPadCenter(1) ;
 
       // all dimentions need to be converted from mm to cm
         
@@ -278,14 +280,32 @@ namespace marlin_delphiF77{
       fkddes_.xrlc[_Ncmat]   =  TPCTHBI/xralu;
       fkddes_.xelosc[_Ncmat] =  TPCTHBI*dedxalu;
     
-      fkexts_.itexts[_Nexs]  = 0;
-      fkexts_.rzsurf[_Nexs]  = fkddes_.rcmat[_Ncmat]+0.1; // place extrapolation surface just on the outside of the inner field cage material 
-      fkexts_.zrmin[_Nexs]   = fkddes_.zcmin[_Ncmat];
-      fkexts_.zrmax[_Nexs]   = fkddes_.zcmax[_Ncmat];
-    
-      _Nexs++;
+//      fkexts_.itexts[_Nexs]  = 0;
+//      fkexts_.rzsurf[_Nexs]  = fkddes_.rcmat[_Ncmat]+0.1; // place extrapolation surface just on the outside of the inner field cage material 
+//      fkexts_.zrmin[_Nexs]   = fkddes_.zcmin[_Ncmat];
+//      fkexts_.zrmax[_Nexs]   = fkddes_.zcmax[_Ncmat];
       _Ncmat++;
+
+      fkexts_.itexts[_Nexs]  = 0;
+      fkexts_.rzsurf[_Nexs]  =  RTPCINN ; // place extrapolation surface one inner side (wrt IP) of the inner field cage material
+      fkexts_.zrmin[_Nexs]   = -TPCHLFZ;
+      fkexts_.zrmax[_Nexs]   =  TPCHLFZ;
+      _Nexs++;
+
+      // put another extrapolation surface on the gas side of the field cage
+      fkexts_.itexts[_Nexs]  =  0;
+      fkexts_.rzsurf[_Nexs]  =  RTPCINN + TPCTHBI ; // place extrapolation surface one outer side (wrt IP) of the inner field cage material
+      fkexts_.zrmin[_Nexs]   = -TPCHLFZ;
+      fkexts_.zrmax[_Nexs]   =  TPCHLFZ;
+      _Nexs++;
     
+      // put another extrapolation surface at the center of the first pad
+      fkexts_.itexts[_Nexs]  =  0;
+      fkexts_.rzsurf[_Nexs]  =  0.1 * padLayout.getPlaneExtent()[0];
+      fkexts_.zrmin[_Nexs]   = -TPCHLFZ;
+      fkexts_.zrmax[_Nexs]   =  TPCHLFZ;
+      _Nexs++;
+
       int ncyl = 50; // SJA: why 50?
     
       // Gas volume in TPC
@@ -305,14 +325,33 @@ namespace marlin_delphiF77{
       fkddes_.zcmax[_Ncmat]  =   TPCHLFZ;
       fkddes_.xrlc[_Ncmat]   =   TPCTHBO/xralu;
       fkddes_.xelosc[_Ncmat] =   TPCTHBO*dedxalu;
-    
-      fkexts_.itexts[_Nexs] = 0;
-      fkexts_.rzsurf[_Nexs] = fkddes_.rcmat[_Ncmat]-0.1; // place extrapolation surface just on the inside of the outer field cage material 
-      fkexts_.zrmin[_Nexs]  = fkddes_.zcmin[_Ncmat];
-      fkexts_.zrmax[_Nexs]  = fkddes_.zcmax[_Ncmat];
-  
-      _Nexs++;
+
       _Ncmat++;
+  
+//      fkexts_.itexts[_Nexs] = 0;
+//      fkexts_.rzsurf[_Nexs] = fkddes_.rcmat[_Ncmat]-0.1; // place extrapolation surface just on the inside of the outer field cage material 
+//      fkexts_.zrmin[_Nexs]  = fkddes_.zcmin[_Ncmat];
+//      fkexts_.zrmax[_Nexs]  = fkddes_.zcmax[_Ncmat];
+
+      // put another extrapolation surface at the inner radius of the pad plane
+      fkexts_.itexts[_Nexs]  =  0;
+      fkexts_.rzsurf[_Nexs]  =  0.1 * padLayout.getPlaneExtent()[1];
+      fkexts_.zrmin[_Nexs]   = -TPCHLFZ;
+      fkexts_.zrmax[_Nexs]   =  TPCHLFZ;
+      _Nexs++;
+  
+      fkexts_.itexts[_Nexs]  = 0;
+      fkexts_.rzsurf[_Nexs]  =  RTPCOUT - TPCTHBO; // place extrapolation surface one inner side (wrt IP) of the outer field cage material
+      fkexts_.zrmin[_Nexs]   = -TPCHLFZ;
+      fkexts_.zrmax[_Nexs]   =  TPCHLFZ;
+      _Nexs++;
+      
+      // put another extrapolation surface on the gas side of the field cage
+      fkexts_.itexts[_Nexs]  =  0;
+      fkexts_.rzsurf[_Nexs]  =  RTPCOUT; // place extrapolation surface one outer side (wrt IP) of the outer field cage material
+      fkexts_.zrmin[_Nexs]   = -TPCHLFZ;
+      fkexts_.zrmax[_Nexs]   =  TPCHLFZ;
+      _Nexs++;
     
     }
   
