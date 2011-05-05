@@ -38,9 +38,14 @@ namespace marlin_delphiF77{
   // returns a pointer to a New LCIO Track with fit parameters determinded at the IP. The responsiblitiy for deletion lies with the caller.
     IMPL::TrackImpl* getIPFit() ;
 
- // returns a pointer to an LCIO Track whose referece point is the closest to the specified point.
-    IMPL::TrackImpl* getNearestFit(float* point) ;
+    // returns a pointer to an LCIO Track whose referece point is the closest to the specified point.
+    IMPL::TrackImpl* getNearestFitToPoint(float* point) ;
 
+    // returns a pointer to an LCIO Track whose referece point is the closest to a cylinder of radius r which is centered at the origin parallel to the z axis.
+    IMPL::TrackImpl* getNearestFitToCylinder(float r) ;
+    
+    // returns a pointer to an LCIO Track whose referece point is the closest to a plane normal to the z axis.
+    IMPL::TrackImpl* getNearestFitToZPlane(float z) ;
 
     // memeber variables 
     EVENT::Track*    _initialLCTrack ;
