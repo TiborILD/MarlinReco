@@ -624,7 +624,7 @@ namespace marlin_delphiF77{
 	_Ncmat++;
 
 	fkexts_.itexts[_Nexs] =  0;
-	fkexts_.rzsurf[_Nexs] =  0.1*radius_sen-0.1; // place an extrapolation surface just inside the inner edge sensitive material 
+	fkexts_.rzsurf[_Nexs] =  0.1*radius_sen; // place an extrapolation surface at the inner edge sensitive material 
 	fkexts_.zrmin[_Nexs]  = -0.1*halfz;
 	fkexts_.zrmax[_Nexs]  =  0.1*halfz;
   
@@ -1106,8 +1106,8 @@ namespace marlin_delphiF77{
     
 	fkexts_.itexts[_Nexs] = 0;
 	fkexts_.rzsurf[_Nexs] = 0.1*rSET[iL];
-	fkexts_.zrmin[_Nexs]  = -halfZSET[iL];
-	fkexts_.zrmax[_Nexs]  = halfZSET[iL];
+	fkexts_.zrmin[_Nexs]  = -0.1*halfZSET[iL];
+	fkexts_.zrmax[_Nexs]  = 0.1*halfZSET[iL];
 	
 	++_Nexs;	      	      
       } 
@@ -1117,7 +1117,7 @@ namespace marlin_delphiF77{
 
 
 
-  bool MaterialDB_F77::buildSIT(){ //SJA:: Extension Surfaces are missing
+  bool MaterialDB_F77::buildSIT(){ 
 
     streamlog_out(DEBUG) << "build SIT  ..." << std::endl;
     bool build_SIT = true;
@@ -1202,8 +1202,8 @@ namespace marlin_delphiF77{
     
 	fkexts_.itexts[_Nexs] = 0;
 	fkexts_.rzsurf[_Nexs] = 0.1*rSIT[iL];
-	fkexts_.zrmin[_Nexs]  = -halfZSIT[iL];
-	fkexts_.zrmax[_Nexs]  = halfZSIT[iL];
+	fkexts_.zrmin[_Nexs]  = -0.1*halfZSIT[iL];
+	fkexts_.zrmax[_Nexs]  = 0.1*halfZSIT[iL];
 	
 	++_Nexs;	      	      
       } 
