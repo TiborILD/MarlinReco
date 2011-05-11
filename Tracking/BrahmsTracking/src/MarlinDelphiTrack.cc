@@ -270,40 +270,42 @@ namespace marlin_delphiF77{
 
 	  float ex_tanagra_param[6]; 
 	  float ex_tanagra_eparam[15];
-	
-	  ex_tanagra_param[0] = Tk_Tk_Bank::Instance().getCoord1_of_ref_point(iext);
-	  ex_tanagra_param[1] = Tk_Tk_Bank::Instance().getCoord2_of_ref_point(iext);
-	  ex_tanagra_param[2] = Tk_Tk_Bank::Instance().getCoord3_of_ref_point(iext);
+
+	  // convert from cm to mm 
+
+	  ex_tanagra_param[0] = Tk_Tk_Bank::Instance().getCoord1_of_ref_point(iext) * 10.0 ;  // R or X depending on measurement_code = 1 or 0
+	  ex_tanagra_param[1] = Tk_Tk_Bank::Instance().getCoord2_of_ref_point(iext) * 10.0 ;  // RPhi or Y depending on measurement_code = 1 or 0
+	  ex_tanagra_param[2] = Tk_Tk_Bank::Instance().getCoord3_of_ref_point(iext) * 10.0 ;  // Z 
 	  ex_tanagra_param[3] = Tk_Tk_Bank::Instance().getTheta(iext);
 	  ex_tanagra_param[4] = Tk_Tk_Bank::Instance().getPhi(iext);
 	  ex_tanagra_param[5] = Tk_Tk_Bank::Instance().getInvp(iext);
 
-	  int fit_code      = Tk_Tk_Bank::Instance().getMeasurement_code(iext);
-	  int ndf_surf      = Tk_Tk_Bank::Instance().getNdf(iext);
-	  float chi2_surf   = Tk_Tk_Bank::Instance().getChi2(iext);
+	  int measurement_code = Tk_Tk_Bank::Instance().getMeasurement_code(iext);
+	  int ndf_surf         = Tk_Tk_Bank::Instance().getNdf(iext);
+	  float chi2_surf      = Tk_Tk_Bank::Instance().getChi2(iext);
 
-	  ex_tanagra_eparam[0] = Tk_Tk_Bank::Instance().getCovmatrix1(iext) ;
-	  ex_tanagra_eparam[1] = Tk_Tk_Bank::Instance().getCovmatrix2(iext) ;
-	  ex_tanagra_eparam[2] = Tk_Tk_Bank::Instance().getCovmatrix3(iext) ;
-	  ex_tanagra_eparam[3] = Tk_Tk_Bank::Instance().getCovmatrix4(iext) ;
-	  ex_tanagra_eparam[4] = Tk_Tk_Bank::Instance().getCovmatrix5(iext) ;
-	  ex_tanagra_eparam[5] = Tk_Tk_Bank::Instance().getCovmatrix6(iext) ;
-	  ex_tanagra_eparam[6] = Tk_Tk_Bank::Instance().getCovmatrix7(iext) ;
-	  ex_tanagra_eparam[7] = Tk_Tk_Bank::Instance().getCovmatrix8(iext) ;
-	  ex_tanagra_eparam[8] = Tk_Tk_Bank::Instance().getCovmatrix9(iext) ;
-	  ex_tanagra_eparam[9] = Tk_Tk_Bank::Instance().getCovmatrix10(iext) ;
-	  ex_tanagra_eparam[10] = Tk_Tk_Bank::Instance().getCovmatrix11(iext) ;
-	  ex_tanagra_eparam[11] = Tk_Tk_Bank::Instance().getCovmatrix12(iext) ;
-	  ex_tanagra_eparam[12] = Tk_Tk_Bank::Instance().getCovmatrix13(iext) ;
-	  ex_tanagra_eparam[13] = Tk_Tk_Bank::Instance().getCovmatrix14(iext) ;
-	  ex_tanagra_eparam[14] = Tk_Tk_Bank::Instance().getCovmatrix15(iext) ;
+	  ex_tanagra_eparam[0] = Tk_Tk_Bank::Instance().getCovmatrix1(iext) * 100.0 ;   // (R-Phi,R-Phi) or (X,X) depending on measurement_code = 1 or 0
+	  ex_tanagra_eparam[1] = Tk_Tk_Bank::Instance().getCovmatrix2(iext) * 100.0 ;	// (R-Phi,Z)     or (X,Y) depending on measurement_code = 1 or 0
+	  ex_tanagra_eparam[2] = Tk_Tk_Bank::Instance().getCovmatrix3(iext) * 100.0 ;	// (Z,Z)         or (Y,Y) depending on measurement_code = 1 or 0
+	  ex_tanagra_eparam[3] = Tk_Tk_Bank::Instance().getCovmatrix4(iext) * 10.0  ;	// (R-Phi,Theta)
+	  ex_tanagra_eparam[4] = Tk_Tk_Bank::Instance().getCovmatrix5(iext) * 10.0  ;	// (Z,Theta)
+	  ex_tanagra_eparam[5] = Tk_Tk_Bank::Instance().getCovmatrix6(iext) ;   	// (Theta,Theta)
+	  ex_tanagra_eparam[6] = Tk_Tk_Bank::Instance().getCovmatrix7(iext) * 10.0  ;	// (R-Phi,phi)
+	  ex_tanagra_eparam[7] = Tk_Tk_Bank::Instance().getCovmatrix8(iext) * 10.0  ;	// (Z,phi) 
+	  ex_tanagra_eparam[8] = Tk_Tk_Bank::Instance().getCovmatrix9(iext) ;   	// (Theta,phi)
+	  ex_tanagra_eparam[9] = Tk_Tk_Bank::Instance().getCovmatrix10(iext) ;  	// (phi,phi)
+	  ex_tanagra_eparam[10] = Tk_Tk_Bank::Instance().getCovmatrix11(iext) * 10.0 ;	// (R-Phi,1/p)
+	  ex_tanagra_eparam[11] = Tk_Tk_Bank::Instance().getCovmatrix12(iext) * 10.0 ;	// (Z,1/p)
+	  ex_tanagra_eparam[12] = Tk_Tk_Bank::Instance().getCovmatrix13(iext) ; 	// (Theta,1/p)
+	  ex_tanagra_eparam[13] = Tk_Tk_Bank::Instance().getCovmatrix14(iext) ; 	// (phi,1/p)
+	  ex_tanagra_eparam[14] = Tk_Tk_Bank::Instance().getCovmatrix15(iext) ;         // (1/p,1/p) 
 	
 	  float tcov[15];
 	  for(int icov = 0; icov < 15; ++icov){
 	    tcov[icov] =  ex_tanagra_eparam[icov];
 	  }
 
-	  TanagraTrack* tf = new TanagraTrack(  ex_tanagra_param[0], ex_tanagra_param[1], ex_tanagra_param[2], ex_tanagra_param[3], ex_tanagra_param[4], ex_tanagra_param[5], ndf_surf, chi2_surf, fit_code, tcov);
+	  TanagraTrack* tf = new TanagraTrack(  ex_tanagra_param[0], ex_tanagra_param[1], ex_tanagra_param[2], ex_tanagra_param[3], ex_tanagra_param[4], ex_tanagra_param[5], ndf_surf, chi2_surf, measurement_code, tcov);
 	  
 	  _tanagra_fits.push_back(tf);
 
@@ -333,7 +335,7 @@ namespace marlin_delphiF77{
 	    rMinSurf = ex_tanagra_param[0] ;
 	  }
 
-	  streamlog_out( DEBUG2 ) << " MarlinDelphi track parameters: for surface " << iext << " at R = " << ex_tanagra_param[0] * 10.0 << " mm "  
+	  streamlog_out( DEBUG2 ) << " MarlinDelphi track parameters: for surface " << iext << " at R = " << ex_tanagra_param[0] << " mm "  
 				 << " chi2/ndf " <<  trkAtSurf->getChi2() /  trkAtSurf->getNdf()  
 				 << " chi2 " <<  trkAtSurf->getChi2() << std::endl 
 	    
