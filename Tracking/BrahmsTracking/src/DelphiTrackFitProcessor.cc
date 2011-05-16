@@ -15,12 +15,14 @@
 //---- GEAR ----
 #include "marlin/Global.h"
 #include "gear/GEAR.h"
+#include <gear/GearParameters.h>
 
 #include <ILDDetectorIDs.h>
 
 #include "MarlinDelphiTrack.h"
 #include "MaterialDB_F77.hh"
 
+#include <TrackPropagators.h>
 
 
 using namespace lcio ;
@@ -34,6 +36,8 @@ extern "C" {
     int ihis ;
   } fkdebug_;
 }
+
+
 
 DelphiTrackFitProcessor aDelphiTrackFitProcessor ;
 
@@ -135,7 +139,7 @@ void DelphiTrackFitProcessor::processEvent( LCEvent * evt ) {
 	  float point[3] ;
 	  point[0] = point[1] = point[2] = 0.0 ; // IP
 
-	  float r_cylinder = 330.0 ;
+	  float r_cylinder = 300.0 ;
 
 	  // SJA:FIXME: these need to be const so that no body can change them ... 
 	  //	  TrackImpl* nearestFit = marlin_trk->getNearestFitToPoint(point) ;	
@@ -156,17 +160,52 @@ void DelphiTrackFitProcessor::processEvent( LCEvent * evt ) {
 				   << "\t Omega "       <<  nearestFit->getOmega()      <<  "[+/-" << sqrt( cov[5] ) << "] " 
 				   << "\t Z0 "          <<  nearestFit->getZ0()         <<  "[+/-" << sqrt( cov[9] ) << "] " 
 				   << "\t tan(Lambda) " <<  nearestFit->getTanLambda()  <<  "[+/-" << sqrt( cov[14]) << "] " 
-				   << "\t ref : [" << ref[0] << ", " << ref[1] << ", "  << ref[2] << "]"     
+				    << "\t ref : [" << ref[0] << ", " << ref[1] << ", "  << ref[2] << "] radius ref = " << sqrt(ref[0]*ref[0]+ref[1]*ref[1])
 				   << std::endl ;
+	    
+	    streamlog_out( DEBUG4 ) << "Move Track to SIT layers 2 and 1" << std::endl ;
 
+	    const gear::GearParameters& pSITDet = Global::GEAR->getGearParameters("SIT") ; 
 
-	    // now we have the parameters of the track at the surface which is set to be the same as the hit ... though this won't work for the vertex as they are planes ...
-	    // if we want to check the distance to a hit and use the errors from the covariance matrix we will need to convert the d0 parameter into x and y with errors ... I'll do this tomorrow ...
-	    // to do things properly what we really need is a propagate to cylinder or plane method in addition to the propagate to point,
-	    // even without material this would a lot more preferable than fixing the surfaces in advance, we just need somebody to do it ;)
+	    int nSITR = int(pSITDet.getDoubleVals("SITLayerRadius").size()) ;
+	    int nLayersSIT = 0 ;
 
-	    // the fixing the surface in advance will work but we will need to check carefully that the extrapolation surfaces are really at the same surface of the hits, which won't be to hard to ensure.
-	    // at the moment due the fact that by definition d0 and z0 are both zero you have the x y z info as this is the reference point, we just need the errors as mentioned above. 
+	    nLayersSIT = nSITR ;
+
+	    for (int iL=nLayersSIT-1;iL>-1;--iL) {
+
+	      double layer_rad = float(pSITDet.getDoubleVals("SITLayerRadius")[iL]) ;
+
+	      // Now propagate the fit to the SIT layers using the TrackPropagators
+	      IMPL::TrackImpl* trk_at_SIT = TrackPropagators::PropagateLCIOToCylinder(nearestFit, layer_rad, 0.0, 0.0, 0) ;
+
+	      EVENT::FloatVec cov_at_SIT = trk_at_SIT->getCovMatrix() ;
+
+	      if(trk_at_SIT){
+		streamlog_out( DEBUG4 ) << "Track At SIT layer "<< iL << std::endl
+					<< "\t D0 "          <<  trk_at_SIT->getD0()           <<  "[+/-" << sqrt( cov_at_SIT[0] ) << "] "             
+					<< "\t Phi :"        <<  trk_at_SIT->getPhi()          <<  "[+/-" << sqrt( cov_at_SIT[2] ) << "] "  
+					<< "\t Omega "       <<  trk_at_SIT->getOmega()        <<  "[+/-" << sqrt( cov_at_SIT[5] ) << "] "  
+					<< "\t Z0 "          <<  trk_at_SIT->getZ0()           <<  "[+/-" << sqrt( cov_at_SIT[9] ) << "] "  
+					<< "\t tan(Lambda) " <<  trk_at_SIT->getTanLambda()    <<  "[+/-" << sqrt( cov_at_SIT[14]) << "] "  
+					<< "\t ref : [" << trk_at_SIT->getReferencePoint()[0] << ", " << trk_at_SIT->getReferencePoint()[1] << ", "  << trk_at_SIT->getReferencePoint()[2] 
+					<< "] radius ref = " << sqrt(trk_at_SIT->getReferencePoint()[0]*trk_at_SIT->getReferencePoint()[0]+trk_at_SIT->getReferencePoint()[1]*trk_at_SIT->getReferencePoint()[1])
+					<< std::endl ;
+		delete trk_at_SIT ;
+	      }
+	      else{ 
+		streamlog_out( DEBUG4 ) << "Track At SIT layer "<< iL << ": No intersection found" << std::endl; 
+	      } 
+	    }
+
+	    // You can also propagate to a vtx ladder i.e. a plane parallel to the z-axis using
+	    // Propagate track to a new reference point taken as its crossing point with a plane parallel to the z axis, containing points x1,x2 and y1,y2. Tolerance for intersection determined by epsilon.
+	    // For direction== 0  the closest crossing point will be taken
+	    // For direction== 1  the first crossing traversing in positive s will be taken
+	    // For direction==-1  the first crossing traversing in negative s will be taken
+	    // IMPL::TrackImpl* trk_at_VXD = TrackPropagators::PropagateLCIOToPlaneParralelToZ(nearestFit, x1, y1, x2, y2, 0) ;
+	    
+	    // if we want to check the distance to a hit and use the errors from the covariance matrix we will need to convert the d0 parameter into x and y with errors ... 
 	    // then we would get the hit and make the comparison ... 
 
 	    IMPL::TrackImpl* copyTrk = new IMPL::TrackImpl ;
