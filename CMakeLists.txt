@@ -28,7 +28,7 @@ ENDIF()
 
 # project version
 SET( ${PROJECT_NAME}_VERSION_MAJOR 0 )
-SET( ${PROJECT_NAME}_VERSION_MINOR 20 )
+SET( ${PROJECT_NAME}_VERSION_MINOR 21 )
 SET( ${PROJECT_NAME}_VERSION_PATCH 0 )
 
 
@@ -42,7 +42,7 @@ INCLUDE( ilcsoft_default_settings )
 
 
 FIND_PACKAGE( Marlin 1.0 REQUIRED )
-FIND_PACKAGE( MarlinUtil REQUIRED )
+FIND_PACKAGE( MarlinUtil 1.4 REQUIRED )
 FIND_PACKAGE( GSL REQUIRED )
 FIND_PACKAGE( ROOT 5.27 REQUIRED COMPONENTS MathMore )
 
@@ -115,11 +115,7 @@ MACRO( ADD_MARLINRECO_PKG _input_dir )
 ENDMACRO()
 
 
-ADD_MARLINRECO_PKG( ./Analysis/EventShapes )
-ADD_MARLINRECO_PKG( ./Analysis/BCalTagEfficiency )
 ADD_MARLINRECO_PKG( ./Analysis/CLICPfoSelector )
-ADD_MARLINRECO_PKG( ./Analysis/SatoruJetFinder )
-ADD_MARLINRECO_PKG( ./Analysis/MarlinKinfit )
 ADD_MARLINRECO_PKG( ./Analysis/RecoMCTruthLink )
 ADD_MARLINRECO_PKG( ./Analysis/ZFinder )
 ADD_MARLINRECO_PKG( ./Calibration/AbsCalibration )
@@ -136,16 +132,19 @@ ADD_MARLINRECO_PKG( ./TrackDigi/FTDDigi )
 ADD_MARLINRECO_PKG( ./TrackDigi/ETDDigi )
 ADD_MARLINRECO_PKG( ./TrackDigi/VTXDigi )
 ADD_MARLINRECO_PKG( ./TrackDigi/FPCCDDigi )
-ADD_MARLINRECO_PKG( ./Tracking/FullLDCTracking )
-ADD_MARLINRECO_PKG( ./Tracking/SiliconTracking )
-ADD_MARLINRECO_PKG( ./Tracking/TrackCheater )
 ADD_MARLINRECO_PKG( ./Tracking/KinkFinder )
 ADD_MARLINRECO_PKG( ./Tracking/V0Finder )
 ADD_MARLINRECO_PKG( ./PFOID )
 
 
 IF( MARLINRECO_FORTRAN )
+    ADD_MARLINRECO_PKG( ./Analysis/BCalTagEfficiency )
+    ADD_MARLINRECO_PKG( ./Analysis/EventShapes )
+    ADD_MARLINRECO_PKG( ./Analysis/SatoruJetFinder )
     ADD_MARLINRECO_PKG( ./Tracking/BrahmsTracking )
+    ADD_MARLINRECO_PKG( ./Tracking/FullLDCTracking )
+    ADD_MARLINRECO_PKG( ./Tracking/SiliconTracking )
+    ADD_MARLINRECO_PKG( ./Tracking/TrackCheater )
     AUX_SOURCE_DIRECTORY( ./Tracking/BrahmsTracking/src/C MarlinReco_c_srcs )
     FILE( GLOB SatoruJetFinder_f77_srcs ./Analysis/SatoruJetFinder/src/fortsrc/*.f )
     FILE( GLOB BrahmsTracking_f77_srcs ./Tracking/BrahmsTracking/src/f77/*.F )
