@@ -78,6 +78,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   double ecal=0., hcal=0., mucal=0.;
   if(cluvec.size()!=0){
     for(unsigned int i=0; i<cluvec.size(); i++){
+      FloatVec sde = cluvec[i]->getSubdetectorEnergies();
       ecal += cluvec[i]->getSubdetectorEnergies()[0];
       hcal += cluvec[i]->getSubdetectorEnergies()[1];
       mucal+=cluvec[i]->getSubdetectorEnergies()[2];
@@ -92,7 +93,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
     }
 */
   if(trax.size() > 0) { dEdx = trax.at(0)->getdEdx(); }
-  else { dEdx = -1.; } // This is quite off-limits because of the norm below
+  else { dEdx = -dEdx_MIP; } // Keep an eye on get_dEdxChi2()...
 
   // Normalise dEdx to MIP
   dEdx /= dEdx_MIP;
@@ -104,6 +105,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   for (VarMap::iterator it=varMap.begin(); it!=varMap.end(); it++) it->second.SetValue(0);
 
   // Basic variables
+  // FIXME: There is a strange bug affecting CALO_Total, producing sharp peaks between 0.9 and 1.
   varMap.at(CALO_Total).SetValue( (ecal+hcal) / p );
   if(ecal+hcal > caloCut) { varMap.at(CALO_EFrac).SetValue( ecal/(ecal+hcal) ); }
   else { varMap.at(CALO_EFrac).SetValue( -1. ); }
@@ -132,8 +134,12 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   varMap.at(DEDX_Chi2kaon).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::kaon))) );
   varMap.at(DEDX_Chi2proton).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::proton))) );
 
+  /* The following anyway does not correspond to histograms in the standard ILDConfiguration.
   for(VarMap::iterator it=varMap.find(dEdx_first); it!=varMap.find(N_VarTypes); it++)
-    it->second.SetValue(-0.5*fabs(it->second.Value()));    //+TMath::Log(sqrt(2.0*TMath::Pi()*0.05*trk->getdEdx()));
+    it->second.SetValue(-0.5*fabs(it->second.Value()));
+    */
+  // This might have been the formula used for the standard histos.
+  //+TMath::Log(sqrt(2.0*TMath::Pi()*0.05*trk->getdEdx()));
 
 }
 

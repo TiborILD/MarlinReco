@@ -21,8 +21,6 @@
 #include "TMath.h"
 #include <map>
 
-/**
-*/
 
 class PIDParticle {
 public:

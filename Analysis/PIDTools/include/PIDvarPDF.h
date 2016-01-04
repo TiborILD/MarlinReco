@@ -28,7 +28,9 @@ using namespace std ;
 /*************************************************************
  * PIDvarPDF processor
  *
- * Produces histograms of variables used by the
+ * Produces histograms of variables such as used by the
+ * LikelihoodPIDProcessor.
+ * TODO: Adapt histogram names for actual use with
  * LikelihoodPIDProcessor.
  *
  * Fills a ROOT tree with relevant information on particles
@@ -41,7 +43,9 @@ using namespace std ;
  * for visualisation and comparison to dEdx vs. p scatter
  * plots.
  *
- * authors: Strahinja Lukić
+ * Adapted from PIDTree processor by J. List.
+ *
+ * Strahinja Lukić, Jan. 2016
  *
 **************************************************************/
 
@@ -105,9 +109,6 @@ class PIDvarPDF : public Processor {
   TTree *varTree ;
   int    nMCParticles;
   
-  // Replace with an array of vector<double>, size PIDVariables::N_VarTypes
-  // Declare branches using PIDVariables map.
-  // Get values from PIDVariable getters - managed by the PIDVariables class - no change here
   PIDVariables pidVars;
   vector<double> sensitiveVars[PIDVariables::N_VarTypes];
   TH1F *sensVarHistos[PIDParticles::nParticleTypes][PIDVariables::N_VarTypes];
