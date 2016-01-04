@@ -7,6 +7,9 @@
 
 #include <EVENT/LCCollection.h>
 
+#include "PIDParticles.hh"
+#include "PIDVariables.hh"
+
 using namespace lcio ;
 using namespace marlin ;
 
@@ -22,9 +25,16 @@ public:
   virtual void processEvent( LCEvent * evt );
   virtual void check( LCEvent * evt );
   virtual void end();
+
+  typedef PIDParticles::ParameterMap ParticleMap;
+  typedef PIDParticles::ParameterMap::iterator particle_iterator;
+  typedef PIDParticles::ParameterMap::const_iterator particle_c_iterator;
+  typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
+  typedef PIDVariables::VarMap::iterator variable_iterator;
+
  
 private:
-  void createParticleIDClass(int parttype, ReconstructedParticle *part, PIDHandler &pidh, int algoID, float MVAoutput);
+  void createParticleIDClass(ReconstructedParticle *part, PIDHandler &pidh, int algoID, float MVAoutput);
   
   LikelihoodPID *_myPID;
   std::string _description;
@@ -33,22 +43,17 @@ private:
   std::vector<std::string> _weightFileName;
   EVENT::FloatVec _energyBoundary;
   LCCollection* _pfoCol;
-  std::vector<int> _pdgTable;
-  std::vector<std::string> _particleNames;
-  std::vector<std::string> _dEdxNames;
-
-  std::vector<float> _dEdxParamsElectron;
-  std::vector<float> _dEdxParamsMuon;
-  std::vector<float> _dEdxParamsPion;
-  std::vector<float> _dEdxParamsKaon;
-  std::vector<float> _dEdxParamsProton;
+  std::vector<std::string> _parNames;
 
   LowMomentumMuPiSeparationPID_BDTG *_mupiPID;
 
-  bool _basicFlg, _dEdxFlg, _showerShapesFlg;
-  int _UseBayes;
-  bool _UseMVA;
-  float _dEdxNormalization, _dEdxErrorFactor;
+  std::vector<float> _particlePriors;
+
+  bool _basicFlg;
+  bool _dEdxFlg;
+  bool _showerShapesFlg;
+
+  unsigned int _nEvt;
 };
 
 #endif 
