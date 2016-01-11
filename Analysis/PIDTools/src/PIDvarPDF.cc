@@ -71,7 +71,7 @@ PIDvarPDF::~PIDvarPDF() {
 
 void PIDvarPDF::init() {
 
-  streamlog_out(DEBUG) << "   init called  " 
+  streamlog_out(DEBUG) << "   init called  "
 		       << std::endl ;
 
   // usually a good idea to
@@ -205,7 +205,9 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
     truePhi.push_back(p.Phi());
     trueCharge.push_back(mcp->getCharge());
     truePDG.push_back(mcp->getPDG());
-    if (mcp->getParents()[0]) {
+
+
+    if (mcp->getParents().size() > 0) {
   streamlog_out(DEBUG) << " Pushing back true mother " << std::endl;
       trueMother.push_back(mcp->getParents()[0]->getPDG());
     }
