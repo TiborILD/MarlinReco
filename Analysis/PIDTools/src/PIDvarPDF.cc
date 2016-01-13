@@ -13,7 +13,7 @@ PIDvarPDF aPIDvarPDF ;
 PIDvarPDF::PIDvarPDF() : Processor("PIDvarPDF"),
     nEvt(0),
     varTree(NULL),
-    nMCParticles(0)
+    nMCParticles(0), nMCPtot(0), nRec(0), nTrkCaloMismatch(0)
 {
   
   // modify processor description
@@ -77,6 +77,8 @@ void PIDvarPDF::init() {
   // usually a good idea to
   printParameters() ;
   nEvt = 0;
+  nMCParticles = 0;
+  nMCPtot = nRec = nTrkCaloMismatch = 0;
 
   gROOT->ProcessLine("#include <vector>");
 
@@ -186,13 +188,14 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
   
   while( MCParticle* mcp = mcpIt.next()  ) {
     
-    if (!mcp) continue; 
+    if (!mcp) continue;
     
     streamlog_out(DEBUG) << " mcparticle id = " << mcp->getPDG() << ", genstat = " << mcp->getGeneratorStatus() << std::endl;
     
     if (mcp->getGeneratorStatus() != 1) continue;
     
     nMCParticles++;
+    nMCPtot++;
 
     TVector3 v( mcp->getVertex() );
     TVector3 e( mcp->getEndpoint() );
@@ -228,30 +231,33 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
     int imaxcaloweight = -1;
     int imaxweight = -1;
     for (unsigned int irel = 0; irel < recovec.size(); irel++) {
+      double tmptrackw = double((int(recoweightvec.at(irel))%10000))/1000;
+      double tmpcalow = double((int(recoweightvec.at(irel))/10000))/1000;
+
       streamlog_out(DEBUG) << " irel " << irel << ", recoweight = " << int(recoweightvec.at(irel))
-                           << ", recoweight%10000 = " << int(recoweightvec.at(irel))%10000
-                           << ", recoweight/10000 = " << int(recoweightvec.at(irel))/10000 << std::endl;
-      if (recoweightvec.at(irel) > maxtrckweight) {
+                           << ", tmptrackw = " << tmptrackw
+                           << ", tmpcalow = " << tmpcalow << std::endl;
+      if (tmptrackw > maxtrckweight) {
         imaxtrckweight = irel;
-        maxtrckweight = double((int(recoweightvec.at(irel))%10000)/1000.);
+        maxtrckweight = tmptrackw;
       }
-      if (recoweightvec.at(irel) > maxcaloweight) {
+      if (tmpcalow > maxcaloweight) {
         imaxcaloweight = irel;
-        maxcaloweight = double((int(recoweightvec.at(irel))/10000)/1000.);
+        maxcaloweight = tmpcalow;
       }
     }
     
     streamlog_out(DEBUG) << " found reco particle for mcp at imaxtrackweight = " << imaxtrckweight << " with weight = " << maxtrckweight << std::endl ;
     streamlog_out(DEBUG) << " found reco particle for mcp at imaxcaloweight = " << imaxcaloweight << " with weight = " << maxcaloweight << std::endl ;
 
-    imaxweight = imaxcaloweight;
-    maxweight = maxcaloweight;
-    if (maxtrckweight > maxcaloweight) {
+//    imaxweight = imaxcaloweight;
+//    maxweight = maxcaloweight;
+    if (maxtrckweight > 0) {
       imaxweight = imaxtrckweight;
       maxweight = maxtrckweight;
     }
-    if (imaxcaloweight != imaxtrckweight)
-       streamlog_out(WARNING) << " imaxcaloweight != imaxtrckweight, choosing recoparticle with larger fraction" << std::endl ;
+    if (imaxcaloweight != imaxtrckweight) nTrkCaloMismatch++;
+ //      streamlog_out(WARNING) << " imaxcaloweight != imaxtrckweight, choosing recoparticle with larger fraction" << std::endl ;
 
 
     streamlog_out(DEBUG) << " found reco particle for mcp at imaxweight = " << imaxweight << " with weight = " << maxweight << std::endl ;
@@ -261,6 +267,8 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
     isReconstructed.push_back(imaxweight>=0);
 
     if (imaxweight >= 0) {
+
+      nRec++;
 
       ReconstructedParticle* rcp =  (ReconstructedParticle*) recovec.at(imaxweight);
 
@@ -272,7 +280,7 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
         sensitiveVars[it->first].push_back(value);
         // Find which histo to fill, if any, by looking at PDG
         for (particle_c_iterator jt = pidVars.GetParticleMap()->begin(); jt != pidVars.GetParticleMap()->end(); jt++) {
-          if(jt->second.pdg == mcp->getPDG()) {
+          if(jt->second.pdg == TMath::Abs(mcp->getPDG())) {
             sensVarHistos[jt->first][it->first]->Fill(value);
             break;
           }
@@ -327,7 +335,9 @@ void PIDvarPDF::check( LCEvent * evt ) {
 
 
 void PIDvarPDF::end(){
-
+  streamlog_out(MESSAGE) << "Found " << nMCPtot << " MC particles.\n";
+  streamlog_out(MESSAGE) << "Matched " << nRec << " reconstructed particles.\n";
+  streamlog_out(MESSAGE) << "Found " << nTrkCaloMismatch << " cases of track/calo mismatch.\n";
 }
 
 

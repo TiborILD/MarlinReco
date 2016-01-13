@@ -109,6 +109,8 @@ class PIDvarPDF : public Processor {
   TTree *varTree ;
   int    nMCParticles;
   
+  int nMCPtot, nRec, nTrkCaloMismatch;
+
   PIDVariables pidVars;
   vector<double> sensitiveVars[PIDVariables::N_VarTypes];
   TH1F *sensVarHistos[PIDParticles::nParticleTypes][PIDVariables::N_VarTypes];
