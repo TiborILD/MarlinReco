@@ -29,8 +29,10 @@
 
 class PIDVariable {
 public:
-  PIDVariable(const char*_name, const char *_axisTitle, const double _loLim, const double _hiLim) :
-    value(0.), name(_name), axisTitle(_axisTitle), loLim(_loLim), hiLim(_hiLim) {};
+  PIDVariable(const char*_name, const char *_axisTitle,
+      const double _loLim, const double _hiLim, const int _nBins=50) :
+    value(0.), name(_name), axisTitle(_axisTitle),
+    loLim(_loLim), hiLim(_hiLim), nBins(_nBins) {};
   ~PIDVariable() {};
 
   double Value() const { return value; };
@@ -38,6 +40,7 @@ public:
   const char *AxisTitle() const { return axisTitle; };
   double LoLim() const { return loLim; };
   double HiLim() const { return hiLim; };
+  int NBins() const { return nBins; };
 
   void SetValue(double val) { value = val; };
 
@@ -45,7 +48,10 @@ private:
   double value;
   const char *name;
   const char *axisTitle;
+  // Limits of the corresponding distribution histogram
   const double loLim, hiLim;
+  // No of bins of the corresponding distribution histogram
+  const char nBins;
 };
 
 

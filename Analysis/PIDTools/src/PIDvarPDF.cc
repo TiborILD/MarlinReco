@@ -95,7 +95,7 @@ void PIDvarPDF::init() {
       sensVarHistos[jt->first][it->first] =
           new TH1F(Form("%s.%s", jt->second.Name(), it->second.Name()),
                    Form("%s.%s;%s;", jt->second.Name(), it->second.Name(), it->second.AxisTitle()),
-                          200, it->second.LoLim(), it->second.HiLim());
+                          it->second.NBins(), it->second.LoLim(), it->second.HiLim());
     }
   }
 
@@ -335,6 +335,18 @@ void PIDvarPDF::check( LCEvent * evt ) {
 
 
 void PIDvarPDF::end(){
+
+  // Normalize the PDF histograms
+  for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++) {
+    for(particle_c_iterator jt  = pidVars.GetParticleMap()->begin();
+                            jt != pidVars.GetParticleMap()->end(); jt++)
+    {
+      TH1F* histo = sensVarHistos[jt->first][it->first];
+      histo->Scale(1./histo->Integral());
+    }
+  }
+
+
   streamlog_out(MESSAGE) << "Found " << nMCPtot << " MC particles.\n";
   streamlog_out(MESSAGE) << "Matched " << nRec << " reconstructed particles.\n";
   streamlog_out(MESSAGE) << "Found " << nTrkCaloMismatch << " cases of track/calo mismatch.\n";
