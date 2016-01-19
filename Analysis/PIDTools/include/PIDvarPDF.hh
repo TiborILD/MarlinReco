@@ -122,6 +122,8 @@ class PIDvarPDF : public Processor {
   vector<double> trueTheta ;
   vector<double> truePhi ;
   vector<double> trueCharge;
+  vector<double> trued0;
+  vector<double> truez0;
   vector<int>    truePDG;
   vector<int>    trueMother;
   

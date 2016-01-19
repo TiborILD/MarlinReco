@@ -94,6 +94,7 @@ public:
   static const varType dEdx_beyond;
 
   // Various cuts used when calculating the variables
+  static const double ptCut; // Avoid division by zero for "CaloTotal"
   static const double caloCut;
   static const double muSysCut;
   static const double muSysPCut;

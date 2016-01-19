@@ -129,6 +129,8 @@ void PIDvarPDF::init() {
   varTree->Branch("trueTheta",&trueTheta) ;
   varTree->Branch("truePhi",&truePhi) ;
   varTree->Branch("trueCharge",&trueCharge) ;
+  varTree->Branch("trued0",&trued0) ;
+  varTree->Branch("truez0",&truez0) ;
   varTree->Branch("truePDG",&truePDG) ;
   varTree->Branch("trueMother",&trueMother) ;
 
@@ -164,6 +166,8 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
   trueTheta.clear();
   truePhi.clear();
   trueCharge.clear();
+  trued0.clear();
+  truez0.clear();
   truePDG.clear();
   trueMother.clear();
   isReconstructed.clear();
@@ -207,6 +211,8 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
     trueTheta.push_back(p.Theta());
     truePhi.push_back(p.Phi());
     trueCharge.push_back(mcp->getCharge());
+    trued0.push_back(v.Perp());
+    truez0.push_back(v.Z());
     truePDG.push_back(mcp->getPDG());
 
 

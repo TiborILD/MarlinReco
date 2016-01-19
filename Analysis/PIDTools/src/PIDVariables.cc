@@ -17,6 +17,7 @@ const PIDVariables::varType PIDVariables::dEdx_first = PIDVariables::DEDX_Chi2el
 const PIDVariables::varType PIDVariables::dEdx_beyond = PIDVariables::N_VarTypes;
 
 // TODO: Optimize these cuts
+const double PIDVariables::ptCut = 0.01; // 1/10 of the minimum reconstructible pT at ILD
 const double PIDVariables::caloCut = 0.05; // Minimum ECAL+HCAL to calculate ECAL/(ECAL+HCAL)
 const double PIDVariables::muSysCut = 0.01;
 const double PIDVariables::muSysPCut = 5.;
@@ -109,9 +110,17 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   for (VarMap::iterator it=varMap.begin(); it!=varMap.end(); it++) it->second.SetValue(0);
 
   // Basic variables
-  varMap.at(CALO_Total).SetValue( (ecal +hcal) / p );
-  if(ecal+hcal > caloCut) { varMap.at(CALO_EFrac).SetValue( ecal/(ecal+hcal) ); }
+  if(p3.Perp() > ptCut) {
+    varMap.at(CALO_Total).SetValue( (ecal +hcal) / p );
+  }
+  else { varMap.at(CALO_Total).SetValue( -1. ); }
+
+  if(ecal+hcal > caloCut) {
+    // Avoid ECAL fraction == 1.0 (1.0 goes into the overflow bin)
+    varMap.at(CALO_EFrac).SetValue( ecal/(ecal+hcal) - 1.e-6);
+  }
   else { varMap.at(CALO_EFrac).SetValue( -1. ); }
+
   varMap.at(CALO_MuSys).SetValue(mucal);
 
   // Shower shapes
