@@ -9,7 +9,7 @@
 #include "EVENT/Track.h"
 #include <UTIL/PIDHandler.h>
 #include "TFile.h"
-#include "TH1F.h"
+#include "TH1.h"
 
 #include "PIDParticles.hh"
 #include "PIDVariables.hh"
@@ -75,7 +75,7 @@ protected:
 
   void CalcPosteriors();
   // This function returns Log(L) for the hypothesis, based on the value "value" of the variable "valtype"
-  const Double_t LogL(parType, varType valtype, Double_t value);
+  const Double_t LogL(parType, varType valtype);
   Double_t getPenalty(Int_t ptype, Int_t hypothesis, Double_t p);
 
   // Particle to process
@@ -83,7 +83,7 @@ protected:
 
 //  Double_t par[5][5];
   TFile* fpdf;
-  TH1F* pdf[PIDParticles::nParticleTypes][20];
+  TH1* pdf[PIDParticles::nParticleTypes][PIDVariables::N_VarTypes];
 
   // particle properties
   ParticleMap *particlePars;

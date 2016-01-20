@@ -46,18 +46,29 @@ PIDVariables::PIDVariables(EVENT::ReconstructedParticle* _particle) {
 }
 
 void PIDVariables::PopulateMap() {
-  varMap.insert(std::pair<varType, PIDVariable>(CALO_Total, PIDVariable("CaloTotal", "(ECAL+HCAL)/p", 0., 2., 40)));
-  varMap.insert(std::pair<varType, PIDVariable>(CALO_EFrac, PIDVariable("CaloEFrac", "ECAL/(ECAL+HCAL)", 0., 1., 50)));
-  varMap.insert(std::pair<varType, PIDVariable>(CALO_MuSys, PIDVariable("CaloMuSys", "#mu system deposit (GeV)", 0., 10., 50)));
-  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_Chi2, PIDVariable("CluShapeChi2", "Cluster shape #chi^{2}", -2., 20., 44)));
-  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_DiscrL, PIDVariable("DiscrepancyL", "Shower max / EM shower max", -30., 80., 55)));
-  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_DiscrT, PIDVariable("DiscrepancyT", "Absorption length / R_{m}", 0., 1., 50)));
-  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_xl20, PIDVariable("Xl20", "xl20", 0., 50., 50)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2electron, PIDVariable("dEdxChi2electron", "#chi^{2}_{dE/dx} (electron)", -50., 50., 100)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2muon, PIDVariable("dEdxChi2muon", "#chi^{2}_{dE/dx} (#mu)", -50., 50., 100)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2pion, PIDVariable("dEdxChi2pion", "#chi^{2}_{dE/dx} (#pi)", -50., 50., 100)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2kaon, PIDVariable("dEdxChi2kaon", "#chi^{2}_{dE/dx} (K)", -50., 50., 100)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2proton, PIDVariable("dEdxChi2proton", "#chi^{2}_{dE/dx} (p)", -50., 50., 100)));
+  const int nBinsCommon = 8;
+  double * binsCommon = new double[nBinsCommon+1];
+  binsCommon[0] =  0.;
+  binsCommon[1] =  1.;
+  binsCommon[2] =  2.;
+  binsCommon[3] =  5.;
+  binsCommon[4] = 10.;
+  binsCommon[5] = 20.;
+  binsCommon[6] = 50.;
+  binsCommon[7] = 100.;
+  binsCommon[8] = 5000.;
+  varMap.insert(std::pair<varType, PIDVariable>(CALO_Total, PIDVariable("CaloTotal", "(ECAL+HCAL)/p", nBinsCommon, binsCommon, 0., 2., 40)));
+  varMap.insert(std::pair<varType, PIDVariable>(CALO_EFrac, PIDVariable("CaloEFrac", "ECAL/(ECAL+HCAL)", nBinsCommon, binsCommon, 0., 1., 50)));
+  varMap.insert(std::pair<varType, PIDVariable>(CALO_MuSys, PIDVariable("CaloMuSys", "#mu system deposit (GeV)", nBinsCommon, binsCommon, 0., 10., 50)));
+  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_Chi2, PIDVariable("CluShapeChi2", "Cluster shape #chi^{2}", nBinsCommon, binsCommon, -2., 20., 44)));
+  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_DiscrL, PIDVariable("DiscrepancyL", "Shower max / EM shower max", nBinsCommon, binsCommon, -30., 80., 55)));
+  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_DiscrT, PIDVariable("DiscrepancyT", "Absorption length / R_{m}", nBinsCommon, binsCommon, 0., 1., 50)));
+  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_xl20, PIDVariable("Xl20", "xl20", nBinsCommon, binsCommon, 0., 50., 50)));
+  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2electron, PIDVariable("dEdxChi2electron", "#chi^{2}_{dE/dx} (electron)", 0, NULL, -50., 50., 100)));
+  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2muon, PIDVariable("dEdxChi2muon", "#chi^{2}_{dE/dx} (#mu)", 0, NULL, -50., 50., 100)));
+  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2pion, PIDVariable("dEdxChi2pion", "#chi^{2}_{dE/dx} (#pi)", 0, NULL, -50., 50., 100)));
+  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2kaon, PIDVariable("dEdxChi2kaon", "#chi^{2}_{dE/dx} (K)", 0, NULL, -50., 50., 100)));
+  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2proton, PIDVariable("dEdxChi2proton", "#chi^{2}_{dE/dx} (p)", 0, NULL, -50., 50., 100)));
 }
 
 

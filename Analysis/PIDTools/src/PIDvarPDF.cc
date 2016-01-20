@@ -4,6 +4,7 @@
 #include <UTIL/PIDHandler.h>
 #include "TROOT.h"
 #include "TString.h"
+#include <TH2F.h>
 
 
 
@@ -92,10 +93,24 @@ void PIDvarPDF::init() {
     for(particle_c_iterator jt  = pidVars.GetParticleMap()->begin();
                             jt != pidVars.GetParticleMap()->end(); jt++)
     {
-      sensVarHistos[jt->first][it->first] =
+      if(it->second.NBinsP() > 1) {
+        streamlog_out(DEBUG) << "Defining histogram " << Form("%s.%s", jt->second.Name(), it->second.Name())
+                  << " with " << it->second.NBinsP() << " bins in P with limits:\n";
+        for (int i=0; i<it->second.NBinsP()+1; i++) streamlog_out(DEBUG) << it->second.PBins()[i] << ", ";
+        streamlog_out(DEBUG) << std::endl;
+        sensVarHistos[jt->first][it->first] =
+          new TH2F(Form("%s.%s", jt->second.Name(), it->second.Name()),
+                   Form("%s.%s; p (GeV); %s", jt->second.Name(), it->second.Name(), it->second.AxisTitle()),
+                          it->second.NBinsP(), it->second.PBins(),
+                          it->second.NBinsV(), it->second.LoLim(), it->second.HiLim());
+      }
+      else {
+        sensVarHistos[jt->first][it->first] =
           new TH1F(Form("%s.%s", jt->second.Name(), it->second.Name()),
-                   Form("%s.%s;%s;", jt->second.Name(), it->second.Name(), it->second.AxisTitle()),
-                          it->second.NBins(), it->second.LoLim(), it->second.HiLim());
+                   Form("%s.%s; %s;", jt->second.Name(), it->second.Name(), it->second.AxisTitle()),
+                          it->second.NBinsV(), it->second.LoLim(), it->second.HiLim());
+
+      }
     }
   }
 
@@ -277,17 +292,20 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
       nRec++;
 
       ReconstructedParticle* rcp =  (ReconstructedParticle*) recovec.at(imaxweight);
+      EVENT::TrackVec trax = rcp->getTracks();
+      TVector3 p3(rcp->getMomentum());
 
       //  PID sensitive variables  ***/
       pidVars.Update(rcp);
       for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++)
       {
-        double value = pidVars.GetVariable(it->first);
+        double value = pidVars.GetValue(it->first);
         sensitiveVars[it->first].push_back(value);
         // Find which histo to fill, if any, by looking at PDG
         for (particle_c_iterator jt = pidVars.GetParticleMap()->begin(); jt != pidVars.GetParticleMap()->end(); jt++) {
           if(jt->second.pdg == TMath::Abs(mcp->getPDG())) {
-            sensVarHistos[jt->first][it->first]->Fill(value);
+            if(it->second.NBinsP() > 1) { sensVarHistos[jt->first][it->first]->Fill(p3.Mag(), value); }
+            else { sensVarHistos[jt->first][it->first]->Fill(value); }
             break;
           }
         }
@@ -295,15 +313,11 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
 
 
       // Other variables
-      EVENT::TrackVec trax = rcp->getTracks();
-      TVector3 p3(rcp->getMomentum());
-
       seenP.push_back(p3.Mag());
       seenPt.push_back(p3.Perp());
       seenTheta.push_back(p3.Theta());
       seenPhi.push_back(p3.Phi());
       seenCharge.push_back(rcp->getCharge());
-
       seenDEdx.push_back(pidVars.GetDEdx());
 
     } // if reco part
@@ -347,7 +361,7 @@ void PIDvarPDF::end(){
     for(particle_c_iterator jt  = pidVars.GetParticleMap()->begin();
                             jt != pidVars.GetParticleMap()->end(); jt++)
     {
-      TH1F* histo = sensVarHistos[jt->first][it->first];
+      TH1* histo = sensVarHistos[jt->first][it->first];
       histo->Scale(1./histo->Integral());
     }
   }

@@ -30,17 +30,21 @@
 class PIDVariable {
 public:
   PIDVariable(const char*_name, const char *_axisTitle,
-      const double _loLim, const double _hiLim, const int _nBins=50) :
+      const int _nBinsP, const double *_pBins,
+      const double _loLim, const double _hiLim, const int _nBinsV=50) :
     value(0.), name(_name), axisTitle(_axisTitle),
-    loLim(_loLim), hiLim(_hiLim), nBins(_nBins) {};
+    nBinsV(_nBinsV), loLim(_loLim), hiLim(_hiLim),
+    nBinsP(_nBinsP), pBins(_pBins) {};
   ~PIDVariable() {};
 
   double Value() const { return value; };
   const char *Name() const { return name; };
   const char *AxisTitle() const { return axisTitle; };
+  int NBinsV() const { return nBinsV; };
   double LoLim() const { return loLim; };
   double HiLim() const { return hiLim; };
-  int NBins() const { return nBins; };
+  int NBinsP() const { return nBinsP; };
+  const double *PBins() const { return pBins; };
 
   void SetValue(double val) { value = val; };
 
@@ -48,10 +52,12 @@ private:
   double value;
   const char *name;
   const char *axisTitle;
-  // Limits of the corresponding distribution histogram
+  // No. of bins and limits of the variable distribution histogram
+  const int nBinsV;
   const double loLim, hiLim;
-  // No of bins of the corresponding distribution histogram
-  const char nBins;
+  // Slicing in reconstructed momentum
+  const int nBinsP;
+  const double *pBins;
 };
 
 
@@ -102,7 +108,7 @@ public:
   static const double dEdx_MIP;
 
 
-  double GetVariable(varType i) const { return varMap.at(i).Value(); };
+  double GetValue(varType i) const { return varMap.at(i).Value(); };
   const VarMap* GetMap() const { return &varMap; };
   const ParticleMap* GetParticleMap() const { return particlePars; };
   double GetDEdx() const { return dEdx; };

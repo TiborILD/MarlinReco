@@ -113,7 +113,7 @@ class PIDvarPDF : public Processor {
 
   PIDVariables pidVars;
   vector<double> sensitiveVars[PIDVariables::N_VarTypes];
-  TH1F *sensVarHistos[PIDParticles::nParticleTypes][PIDVariables::N_VarTypes];
+  TH1 *sensVarHistos[PIDParticles::nParticleTypes][PIDVariables::N_VarTypes];
   TH1F *bbHistos[PIDParticles::nParticleTypes];
   TF1 *bbFunction[PIDParticles::nParticleTypes];
 

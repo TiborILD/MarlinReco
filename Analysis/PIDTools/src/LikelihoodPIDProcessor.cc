@@ -151,7 +151,7 @@ void LikelihoodPIDProcessor::processEvent( LCEvent * evt ) {
 
   PIDHandler pidh(_pfoCol);   //BasicPID
 //  int algoID = pidh.addAlgorithm("BayesianPID", _parNames);
-//  int algoid = pidh.getAlgorithmID("BayesianPID");
+//  int algoID = pidh.addAlgorithm("NewBayesianPID", _parNames);
   int algoID = pidh.getAlgorithmID("LikelihoodPID");
 //  streamlog_out(DEBUG) << "Added algorithm " << algoid << std::endl;
  
@@ -172,18 +172,15 @@ void LikelihoodPIDProcessor::processEvent( LCEvent * evt ) {
     // It would be good to also make MuPISeparation that takes (ReconstructedParticleImpl*)
     // as argument.
     // TODO: Move to using the new helper classes
-    EVENT::ClusterVec clu=part->getClusters();
-    lcio::Track* trk = part->getTracks()[0];
-    TLorentzVector pp(part->getMomentum()[0],
-          part->getMomentum()[1],
-          part->getMomentum()[2],
-          part->getEnergy());
     Float_t MVAoutput = -1.0;
-    streamlog_out(DEBUG) << "Checking mu/pi." << std::endl;
+    TLorentzVector pp(TVector3(part->getMomentum()), part->getEnergy());
     if((abs(pdg)==13 || abs(pdg)==211) && pp.P()<2.0){
-        int parttype=_mupiPID->MuPiSeparation(pp, trk, clu);
-        _myPID->setBestParticle((parttype==1) ? PIDParticles::muon : PIDParticles::pion);
-        MVAoutput = _mupiPID->getMVAOutput();
+      streamlog_out(DEBUG) << "Checking mu/pi." << std::endl;
+      EVENT::ClusterVec clu=part->getClusters();
+      lcio::Track* trk = part->getTracks()[0];
+      int parttype=_mupiPID->MuPiSeparation(pp, trk, clu);
+      _myPID->setBestParticle((parttype==1) ? PIDParticles::muon : PIDParticles::pion);
+      MVAoutput = _mupiPID->getMVAOutput();
     }
 
     //create PIDHandler

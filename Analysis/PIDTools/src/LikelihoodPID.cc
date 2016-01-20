@@ -18,14 +18,9 @@ make flags to choose Particle ID method
 risk-minimization and MAP
  */
 
-//#include <string>
-//#include <sstream>
-//#include <TFile.h>
-//#include <TH1F.h>
 #include "LikelihoodPID.hh"
 #include "TString.h"
 #include "TMath.h"
-//#include "PIDVariables.hh"
 
 using namespace std;
 
@@ -68,76 +63,21 @@ _algoFlags(MASK_Basic | MASK_dEdx | MASK_Shapes)
   fpdf=new TFile(fname.c_str());
 
   string hname,hname2;
-  //for(Int_t i=0;i<6;i++) pdf[i] =new TH1F()[14];
-  for(Int_t i=0;i<PIDParticles::nParticleTypes;i++){
-    //ep
-    hname="hep" + itos(i+1);
-    hname2="hep" + itos(i+1) + "_2";
-    pdf[i][0]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //ehad
-    hname="hehad" + itos(i+1);
-    hname2="hehad" + itos(i+1) + "_2";
-    pdf[i][1]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //mucal
-    hname="hmucal" + itos(i+1);
-    hname2="hmucal" + itos(i+1) + "_2";
-    pdf[i][2]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //chi2
-    hname="hchi2" + itos(i+1);
-    hname2="hchi2" + itos(i+1) + "_2";
-    pdf[i][3]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //showermax/exp.showermax
-    hname="hldiscrepancy" + itos(i+1);
-    hname2="hldiscrepancy" + itos(i+1) + "_2";
-    pdf[i][4]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //absorption length
-    hname="htdiscrepancy" + itos(i+1);
-    hname2="htdiscrepancy" + itos(i+1) + "_2";
-    pdf[i][5]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //xl20
-    hname="hxl20" + itos(i+1);
-    hname2="hxl20" + itos(i+1) + "_2";
-    pdf[i][6]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //likeliele
-    hname="hlikeliele" + itos(i+1);
-    hname2="hlikeliele" + itos(i+1) + "_2";
-    pdf[i][7]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //likelimuo
-    hname="hlikelimuo" + itos(i+1);
-    hname2="hlikelimuo" + itos(i+1) + "_2";
-    pdf[i][8]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //likelipi
-    hname="hlikelipi" + itos(i+1);
-    hname2="hlikelipi" + itos(i+1) + "_2";
-    pdf[i][9]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //likelik
-    hname="hlikelik" + itos(i+1);
-    hname2="hlikelik" + itos(i+1) + "_2";
-    pdf[i][10]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //likelip
-    hname="hlikelip" + itos(i+1);
-    hname2="hlikelip" + itos(i+1) + "_2";
-    pdf[i][11]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //deltax
-    hname="hdeltax" + itos(i+1);
-    hname2="hdeltax" + itos(i+1) + "_2";
-    pdf[i][12]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-    //deltaz
-    hname="hdeltaz" + itos(i+1);
-    hname2="hdeltaz" + itos(i+1) + "_2";
-    pdf[i][13]=(TH1F*)fpdf->Get(hname.c_str())/*->Clone(hname2.c_str())*/;
-  }
-  
-  //normalize histograms
-  Double_t weight=1.0;
-  for(Int_t i=0;i<PIDParticles::nParticleTypes;i++){
-    for(Int_t j=0;j<14;j++){
+
+  for(particle_c_iterator pit = particlePars->begin(); pit != particlePars->end(); pit++) {
+    for(variable_c_iterator vit = variables.GetMap()->begin(); vit != variables.GetMap()->end(); vit++) {
+      const char *hname = Form("%s.%s", pit->second.Name(), vit->second.Name());
+      fpdf->GetObject(hname, pdf[pit->first][vit->first]);
+      if (!pdf[pit->first][vit->first]) {
+        std::cout << "LikelihoodPID initialisation failed!\n";
+        std::cout << "Cannot read histogram " << hname << " from file " << fname.c_str() << std::endl;
+        exit(0);
+      }
       //normalize histograms
-      weight=pdf[i][j]->Integral(0,pdf[i][j]->GetNbinsX()+1,"");
-      pdf[i][j]->Scale(1.0/weight);
+      pdf[pit->first][vit->first]->Scale( 1./pdf[pit->first][vit->first]->Integral() );
     }
   }
-
+  
   //set threshold
   //this is original
   // FIXME: This is not used
@@ -232,46 +172,26 @@ void LikelihoodPID::CalcPosteriors(){
   if( (_algoFlags&MASK_Basic) ) {
 
     for (variable_c_iterator varIt = variables.GetMap()->find(PIDVariables::basic_first);
-            varIt!=variables.GetMap()->find(PIDVariables::calo_beyond); varIt++)
+            varIt!=variables.GetMap()->find(PIDVariables::basic_beyond); varIt++)
     {
-      if (variables.GetVariable(PIDVariables::CALO_Total) < PIDVariables::caloCut) continue;
       // Addup logL for all particles
       for(particle_iterator partIt=particlePars->begin(); partIt!=particlePars->end(); partIt++) {
-        // If deposit in the muon-system below the threshold, muon calo deposit distributions are different
-        // FIXME: Should this not be decided by the tracker pT rather than the mu-sys deposit?
-        if(variables.GetVariable(PIDVariables::CALO_MuSys) < PIDVariables::muSysCut && partIt->first==PIDParticles::muon) {
-          partIt->second.AddLogL(LogL(PIDParticles::lowEmuon, varIt->first, varIt->second.Value() ));
-        }
-        else { partIt->second.AddLogL(LogL(partIt->first, varIt->first, varIt->second.Value())); }
+        partIt->second.AddLogL(LogL(partIt->first, varIt->first));
       }
-
-    }
-
-    // If momentum sufficient, use Muon system deposit (NEW)
-    if(variables.GetP() > PIDVariables::muSysPCut) {
-
-      for(particle_iterator partIt=particlePars->begin(); partIt!=particlePars->end(); partIt++) {
-        partIt->second.AddLogL(LogL(partIt->first, PIDVariables::CALO_MuSys,
-                                 variables.GetVariable(PIDVariables::CALO_MuSys))); }
 
     }
   }
 
   // Cluster shape vars
-  if( (_algoFlags&MASK_Shapes) && variables.GetVariable(PIDVariables::CALO_Total)>PIDVariables::caloCut) {
+  if( (_algoFlags&MASK_Shapes)
+      && variables.GetValue(PIDVariables::CALO_Total)*variables.GetP()>PIDVariables::caloCut ) {
 
     for (variable_c_iterator varIt = variables.GetMap()->find(PIDVariables::clushape_first);
           varIt!=variables.GetMap()->find(PIDVariables::clushape_beyond); varIt++)
     {
       // Addup logL for all particles
       for(particle_iterator partIt=particlePars->begin(); partIt!=particlePars->end(); partIt++) {
-        // If deposit in the muon-system below the threshold, muon calo deposit distributions are different
-        // FIXME: Should this not be decided by the tracker pT rather than the mu-sys deposit?
-        if(variables.GetVariable(PIDVariables::CALO_MuSys) < PIDVariables::muSysCut
-            && partIt->second.pdg==13) {
-          partIt->second.AddLogL(LogL(PIDParticles::lowEmuon, varIt->first, varIt->second.Value()));
-        }
-        else { partIt->second.AddLogL(LogL(partIt->first, varIt->first, varIt->second.Value())); }
+        partIt->second.AddLogL(LogL(partIt->first, varIt->first));
       }
     }
   }
@@ -284,12 +204,7 @@ void LikelihoodPID::CalcPosteriors(){
     {
       // Addup logL for all particles
       for(particle_iterator partIt=particlePars->begin(); partIt!=particlePars->end(); partIt++) {
-        // If no trace in the muon system, muons get their L from the tracker, etc
-        if(variables.GetVariable(PIDVariables::CALO_MuSys) < PIDVariables::muSysCut
-            && partIt->second.pdg==13) {
-          partIt->second.AddLogL(LogL(PIDParticles::lowEmuon, varIt->first, varIt->second.Value()));
-        }
-        else { partIt->second.AddLogL(LogL(partIt->first, varIt->first, varIt->second.Value())); }
+        partIt->second.AddLogL(LogL(partIt->first, varIt->first));
       }
     }
   }
@@ -308,21 +223,27 @@ void LikelihoodPID::CalcPosteriors(){
   return;
 }
 
-const Double_t LikelihoodPID::LogL(parType type, varType valtype, Double_t value){
+const Double_t LikelihoodPID::LogL(parType type, varType valtype){
 
-  TH1F *ph = pdf[type][valtype];
-  TAxis *pa = ph->GetXaxis();
+  const PIDVariable var = variables.GetMap()->at(valtype);
 
-  Int_t bin = pa->FindFixBin(value);
+  TH1 *ph = pdf[type][valtype];
+  int bin = 0;
+  if (var.NBinsP() > 1) {
+    bin = ph->FindFixBin(variables.GetP(), var.Value());
+  }
+  else {
+    bin = ph->FindFixBin(var.Value());
+  }
+
   // Value out of range condition occurs at the same time for all hypotheses
-  // (At least it should be so by design of PDF histograms
+  // (At least it should be so by design of PDF histograms)
   // Thus in this case we consider this test neutral and return 0.
-  if (bin==0 || bin>pa->GetNbins()) return 0;
+  if (ph->IsBinUnderflow(bin) || ph->IsBinOverflow(bin)) return 0;
 
-  //get likelihood
+  // Otherwise get likelihood
   Double_t val=ph->GetBinContent(bin);
-
-  if(val == 0) return lowestLogL;
+  if(val <= DBL_MIN) return lowestLogL;
   return TMath::Log(val);
 }
 
