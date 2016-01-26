@@ -44,6 +44,7 @@ private:
   EVENT::FloatVec _energyBoundary;
   LCCollection* _pfoCol;
   std::vector<std::string> _parNames;
+  std::string _algoName;
 
   LowMomentumMuPiSeparationPID_BDTG *_mupiPID;
 

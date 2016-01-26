@@ -81,6 +81,11 @@ LikelihoodPIDProcessor::LikelihoodPIDProcessor()
             _showerShapesFlg,
             bool(true) );
 
+  registerProcessorParameter( "AlgoName" ,
+            "Algorithm name to be written to the slcio file",
+            _algoName,
+            std::string("LikelihoodPID") );
+
   std::vector<float> defaultPriors;
   defaultPriors.push_back(0.2);
   defaultPriors.push_back(0.2);
@@ -152,7 +157,7 @@ void LikelihoodPIDProcessor::processEvent( LCEvent * evt ) {
   PIDHandler pidh(_pfoCol);   //BasicPID
 //  int algoID = pidh.addAlgorithm("BayesianPID", _parNames);
 //  int algoID = pidh.addAlgorithm("NewBayesianPID", _parNames);
-  int algoID = pidh.getAlgorithmID("LikelihoodPID");
+  int algoID = pidh.getAlgorithmID(_algoName.c_str());
 //  streamlog_out(DEBUG) << "Added algorithm " << algoid << std::endl;
  
   int npfo = _pfoCol->getNumberOfElements();
