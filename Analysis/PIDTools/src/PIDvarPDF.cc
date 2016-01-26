@@ -100,9 +100,9 @@ void PIDvarPDF::init() {
         streamlog_out(DEBUG) << std::endl;
         sensVarHistos[jt->first][it->first] =
           new TH2F(Form("%s.%s", jt->second.Name(), it->second.Name()),
-                   Form("%s.%s; p (GeV); %s", jt->second.Name(), it->second.Name(), it->second.AxisTitle()),
-                          it->second.NBinsP(), it->second.PBins(),
-                          it->second.NBinsV(), it->second.LoLim(), it->second.HiLim());
+                   Form("%s.%s; %s; p (GeV)", jt->second.Name(), it->second.Name(), it->second.AxisTitle()),
+                          it->second.NBinsV(), it->second.LoLim(), it->second.HiLim(),
+                          it->second.NBinsP(), it->second.PBins());
       }
       else {
         sensVarHistos[jt->first][it->first] =
@@ -304,7 +304,7 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
         // Find which histo to fill, if any, by looking at PDG
         for (particle_c_iterator jt = pidVars.GetParticleMap()->begin(); jt != pidVars.GetParticleMap()->end(); jt++) {
           if(jt->second.pdg == TMath::Abs(mcp->getPDG())) {
-            if(it->second.NBinsP() > 1) { sensVarHistos[jt->first][it->first]->Fill(p3.Mag(), value); }
+            if(it->second.NBinsP() > 1) { sensVarHistos[jt->first][it->first]->Fill(value, p3.Mag()); }
             else { sensVarHistos[jt->first][it->first]->Fill(value); }
             break;
           }

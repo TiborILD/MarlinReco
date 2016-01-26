@@ -21,6 +21,7 @@ risk-minimization and MAP
 #include "LikelihoodPID.hh"
 #include "TString.h"
 #include "TMath.h"
+#include "TH2F.h"
 
 using namespace std;
 
@@ -73,8 +74,24 @@ _algoFlags(MASK_Basic | MASK_dEdx | MASK_Shapes)
         std::cout << "Cannot read histogram " << hname << " from file " << fname.c_str() << std::endl;
         exit(0);
       }
-      //normalize histograms
-      pdf[pit->first][vit->first]->Scale( 1./pdf[pit->first][vit->first]->Integral() );
+      //normalise histograms
+      int nbinsP = pdf[pit->first][vit->first]->GetNbinsY();
+      if(nbinsP > 1) {
+        // For 2D histograms, each P bin is normalised independently
+        TH2F* histo = (TH2F*)(pdf[pit->first][vit->first]);
+        int nbinsx = histo->GetNbinsX();
+        for (int ibinP=0; ibinP <nbinsP; ibinP++) {
+          double sliceint = histo->Integral(1, nbinsx, ibinP, ibinP);
+          for( int ibinx=0; ibinx<nbinsx; ibinx++) {
+            histo->SetBinContent(ibinx, ibinP, histo->GetBinContent(ibinx, ibinP) / sliceint);
+          }
+        }
+      }
+      else {
+    double norm = 1./pdf[pit->first][vit->first]->Integral();
+      pdf[pit->first][vit->first]->Scale( norm );
+//      std::cout << hname << " norm = " << norm << std::endl;
+      }
     }
   }
   
@@ -229,8 +246,8 @@ const Double_t LikelihoodPID::LogL(parType type, varType valtype){
 
   TH1 *ph = pdf[type][valtype];
   int bin = 0;
-  if (var.NBinsP() > 1) {
-    bin = ph->FindFixBin(variables.GetP(), var.Value());
+  if (ph->GetNbinsY() > 1) {
+    bin = ph->FindFixBin(var.Value(), variables.GetP());
   }
   else {
     bin = ph->FindFixBin(var.Value());
