@@ -144,9 +144,9 @@ typedef std::map<particleType, PIDParticle_base> ParticleMap;
 typedef std::map<particleType, LLPIDHypothesis> LLHypothesesMap;
 typedef std::map<particleType, MVAPIDHypothesis> MVAHypothesesMap;
 
-static ParticleMap* CreateParticleMap();
-static LLHypothesesMap* CreateLLPIDMap(std::vector<float> priors);
-static MVAHypothesesMap* CreateMVAPIDMap();
+ParticleMap* CreateParticleMap();
+LLHypothesesMap* CreateLLPIDMap(std::vector<float> priors);
+MVAHypothesesMap* CreateMVAPIDMap();
 
 }
 

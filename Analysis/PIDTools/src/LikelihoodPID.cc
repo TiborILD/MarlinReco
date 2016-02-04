@@ -23,16 +23,9 @@ risk-minimization and MAP
 #include "TMath.h"
 #include "TH2F.h"
 
-using namespace std;
+#include "PIDParticles.hh"
 
-std::string itos(int i)  
-{
-  std::stringstream s;
-  s << i;
-  return s.str();
-}
-
-
+using PIDParticles::CreateLLPIDMap;
 
 
 
@@ -48,7 +41,7 @@ const short LikelihoodPID::MASK_Shapes = 1 << 2;
 
 const double LikelihoodPID::lowestLogL = -DBL_MAX/100;
 
-LikelihoodPID::LikelihoodPID(string fname, std::vector<float> priors) :
+LikelihoodPID::LikelihoodPID(std::string fname, std::vector<float> priors) :
 _particle(NULL),
 _algoFlags(MASK_Basic | MASK_dEdx | MASK_Shapes)
 {
@@ -63,7 +56,7 @@ _algoFlags(MASK_Basic | MASK_dEdx | MASK_Shapes)
 
   fpdf=new TFile(fname.c_str());
 
-  string hname,hname2;
+  std::string hname,hname2;
 
   for(particle_c_iterator pit = particlePars->begin(); pit != particlePars->end(); pit++) {
     for(variable_c_iterator vit = variables.GetMap()->begin(); vit != variables.GetMap()->end(); vit++) {

@@ -8,7 +8,7 @@
 #include "PIDParticles.hh"
 
 
-static PIDParticles::ParticleMap* PIDParticles::CreateParticleMap() {
+PIDParticles::ParticleMap* PIDParticles::CreateParticleMap() {
 
   ParticleMap *parameterMap = new  ParticleMap;
 
@@ -31,7 +31,7 @@ static PIDParticles::ParticleMap* PIDParticles::CreateParticleMap() {
 }
 
 
-static PIDParticles::LLHypothesesMap* PIDParticles::CreateLLPIDMap(std::vector<float> priors) {
+PIDParticles::LLHypothesesMap* PIDParticles::CreateLLPIDMap(std::vector<float> priors) {
 
   LLHypothesesMap *parameterMap = new  LLHypothesesMap;
 
@@ -54,7 +54,7 @@ static PIDParticles::LLHypothesesMap* PIDParticles::CreateLLPIDMap(std::vector<f
 }
 
 
-static PIDParticles::MVAHypothesesMap* PIDParticles::CreateMVAPIDMap() {
+PIDParticles::MVAHypothesesMap* PIDParticles::CreateMVAPIDMap() {
 
   MVAHypothesesMap *parameterMap = new  MVAHypothesesMap;
 
@@ -76,3 +76,4 @@ static PIDParticles::MVAHypothesesMap* PIDParticles::CreateMVAPIDMap() {
   return parameterMap;
 }
 
+/* test */

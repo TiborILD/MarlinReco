@@ -9,6 +9,7 @@
 
 
 #include "MvaPidProcessor.hh"
+#include "LowMomentumMuPiSeparationPID_BDTG.hh"
 
 MvaPidProcessor::MvaPidProcessor() :
   Processor("MvaPidProcessor"),

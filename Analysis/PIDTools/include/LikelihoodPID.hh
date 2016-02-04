@@ -30,7 +30,7 @@ public:
   static const double lowestLogL;
 
   typedef PIDParticles::particleType parType;
-  typedef PIDParticles::LLHypothesesMap ParticleMap;
+  typedef PIDParticles::LLHypothesesMap HypothesesMap;
   typedef PIDParticles::LLHypothesesMap::iterator particle_iterator;
   typedef PIDParticles::LLHypothesesMap::const_iterator particle_c_iterator;
   typedef PIDVariables::varType varType;
@@ -40,7 +40,7 @@ public:
   Int_t Classification(IMPL::ReconstructedParticleImpl*);
   Int_t Classification();
 
-  const ParticleMap * GetParticlePars() const { return particlePars; };
+  const HypothesesMap * GetParticlePars() const { return particlePars; };
   int GetBestType() const;
   int GetBestPDG() const;
   double GetBestLikelihood() const;
@@ -86,7 +86,7 @@ protected:
   TH1* pdf[PIDParticles::nParticleTypes][PIDVariables::N_VarTypes];
 
   // particle properties
-  ParticleMap *particlePars;
+  HypothesesMap *particlePars;
   particle_c_iterator bestParticle;
 
   PIDVariables variables;
