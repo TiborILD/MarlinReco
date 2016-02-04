@@ -83,9 +83,9 @@ class PIDvarPDF : public Processor {
   virtual void end() ;
 
   typedef PIDParticles::particleType ParticleType;
-  typedef PIDParticles::ParameterMap ParticleMap;
-  typedef PIDParticles::ParameterMap::iterator particle_iterator;
-  typedef PIDParticles::ParameterMap::const_iterator particle_c_iterator;
+  typedef PIDParticles::ParticleMap ParticleMap;
+  typedef PIDParticles::ParticleMap::iterator particle_iterator;
+  typedef PIDParticles::ParticleMap::const_iterator particle_c_iterator;
   typedef PIDVariables::VarMap variableMap;
   typedef PIDVariables::VarMap::iterator variable_iterator;
   typedef PIDVariables::VarMap::const_iterator variable_c_iterator;

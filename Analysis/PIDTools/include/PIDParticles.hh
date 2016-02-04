@@ -22,58 +22,133 @@
 #include <map>
 
 
-class PIDParticle {
+namespace PIDParticles
+{
+
+class PIDParticle_base {
 public:
-  PIDParticle (const char *_name, int _pdg, double _mass,
-               double _prior, const double* _BBpars) :
-    pdg(_pdg), mass(_mass), prior(_prior),
-    posterior(0), logL(0), threshold(0), dEdxDist(0), name(_name)
+  PIDParticle_base (const char *name, int _pdg, double _mass, const double* BBpars) :
+    pdg(_pdg), mass(_mass), _name(name)
   {
-    for (int i=0; i<5; i++) BBpars[i] = _BBpars[i];
+    for (int i=0; i<5; i++) _BBpars[i] = BBpars[i];
   };
-  ~PIDParticle() {};
+  PIDParticle_base (const PIDParticle_base &base) :
+    pdg(base.pdg), mass(base.mass), _name(base.Name())
+  {
+    for (int i=0; i<5; i++) _BBpars[i] = base.GetBBpars()[i];
+  };
+  ~PIDParticle_base() {};
 
   const int pdg;
   const double mass;
-  const double prior;
 
-  const double * GetBBpars() const { return BBpars; };
-  double Posterior() const { return posterior; }
-  double LogL() const { return logL; }
-  double Threshold() const { return threshold; }
-  double DEdxDist() const { return dEdxDist; }
-
-  void SetPosterior(double _posterior) { posterior = _posterior; };
-  void SetThreshold(double _threshold) { threshold = _threshold; };
-  void SetDEdxDist(double _dEdxDist) { dEdxDist = _dEdxDist; } ;
-
-  void AddLogL(double logLpartial) { logL += logLpartial; };
-
-  void ResetLogL() { logL=0.; };
-
-  const char* Name() const {return name;};
+  const double * GetBBpars() const { return _BBpars; };
+  const char* Name() const {return _name;};
 
 private:
   // There is no setter for BBpars - they are set in the constructor and do not change!
-  double BBpars[5];
-  double posterior, logL;
-  double threshold;
-  double dEdxDist;
+  double _BBpars[5];
 
-  const char *name;
+  const char *_name;
+};
+
+
+/*** Predefined intrinsic particle properties -- all constants in one place ***/
+
+enum particleType {electron, muon, pion, kaon, proton, lowEmuon, nParticleTypes};
+
+static const double BBparsElectron[5] = {-2.40638e-03, 7.10337e-01, 2.87718e-01, -1.71591e+00, 0.0};
+static const double BBparsMuon[5] = {8.11408e-02, 9.92207e-01, 7.58509e+05, -1.70167e-01, 4.63670e-04};
+static const double BBparsPion[5] = {8.10756e-02, -1.45051e+06, -3.09843e+04, 2.84056e-01, 3.38131e-04};
+static const double BBparsKaon[5] = {7.96117e-02, 4.13335e+03, 1.13577e+06, 1.80555e-01, -3.15083e-04};
+static const double BBparsProton[5] = {7.78772e-02, 4.49300e+04, 9.13778e+04, 1.50088e-01, -6.64184e-04};
+
+static const PIDParticle_base electronProperties("electron", 11, .000510998, BBparsElectron);
+static const PIDParticle_base muonProperties("muon", 13, .105658, BBparsMuon);
+static const PIDParticle_base pionProperties("pion", 211, .139570, BBparsPion);
+static const PIDParticle_base kaonProperties("kaon", 321, .493677, BBparsKaon);
+static const PIDParticle_base protonProperties("proton", 2212, .938272, BBparsProton);
+
+
+/*** Derived classes ***/
+
+// PIDParticle with parameters for LikelihoodPID
+
+class LLPIDHypothesis : public PIDParticle_base {
+public:
+
+  LLPIDHypothesis (const char *_name, int _pdg, double _mass,
+               float _prior, const double* _BBpars) :
+    PIDParticle_base(_name, _pdg, _mass, _BBpars),
+    prior(_prior), _posterior(0), _logL(0), _threshold(0)
+  {  };
+
+  LLPIDHypothesis (const PIDParticle_base &base, float _prior) :
+    PIDParticle_base(base),
+    prior(_prior), _posterior(0), _logL(0), _threshold(0)
+  {  };
+
+  ~LLPIDHypothesis() {};
+
+  const float prior;
+
+  double Posterior() const { return _posterior; }
+  double LogL() const { return _logL; }
+  double Threshold() const { return _threshold; }
+
+  void SetPosterior(double posterior) { _posterior = posterior; };
+  void SetThreshold(double thr) { _threshold = thr; };
+
+  void AddLogL(double logLpartial) { _logL += logLpartial; };
+
+  void ResetLogL() { _logL=0.; };
+
+private:
+  double _posterior, _logL;
+  double _threshold;
 };
 
 
 
-struct PIDParticles {
+// PIDParticle with parameters for MVA PID
 
-  enum particleType {electron, muon, pion, kaon, proton, lowEmuon, nParticleTypes};
+class MVAPIDHypothesis : public PIDParticle_base {
+public:
 
-  typedef std::map<particleType, PIDParticle> ParameterMap;
+  MVAPIDHypothesis (const char *_name, int _pdg, double _mass, const double* _BBpars) :
+    PIDParticle_base(_name, _pdg, _mass, _BBpars),
+    _mva(0), _q(0)
+  {  };
 
-  static ParameterMap* CreateMap(std::vector<float> priors);
+  MVAPIDHypothesis (const PIDParticle_base &base) :
+    PIDParticle_base(base),
+    _mva(0), _q(0)
+  {  };
 
+  ~MVAPIDHypothesis() {};
+
+  float GetMVAout() const { return _mva; }
+  float GetQ() const { return _q; }
+
+  void SetMVAout(float mva) { _mva = mva; }
+  void SetQ(float q) { _q = q; }
+
+private:
+  float _mva, _q;
 };
+
+
+
+
+typedef std::map<particleType, PIDParticle_base> ParticleMap;
+typedef std::map<particleType, LLPIDHypothesis> LLHypothesesMap;
+typedef std::map<particleType, MVAPIDHypothesis> MVAHypothesesMap;
+
+static ParticleMap* CreateParticleMap();
+static LLHypothesesMap* CreateLLPIDMap(std::vector<float> priors);
+static MVAHypothesesMap* CreateMVAPIDMap();
+
+}
 
 
 #endif /* PIDPARTICLES_HH_ */

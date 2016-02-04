@@ -37,8 +37,10 @@ public:
     nBinsP(_nBinsP), pBins(_pBins) {};
   ~PIDVariable() {};
 
-  double Value() const { return value; };
+  float Value() const { return value; };
   const char *Name() const { return name; };
+  const float &Reference() const { return value; };
+
   const char *AxisTitle() const { return axisTitle; };
   int NBinsV() const { return nBinsV; };
   double LoLim() const { return loLim; };
@@ -49,7 +51,7 @@ public:
   void SetValue(double val) { value = val; };
 
 private:
-  double value;
+  float value;
   const char *name;
   const char *axisTitle;
   // No. of bins and limits of the variable distribution histogram
@@ -88,7 +90,7 @@ public:
   };
 
   typedef std::map<varType, PIDVariable> VarMap;
-  typedef PIDParticles::ParameterMap ParticleMap;
+  typedef PIDParticles::ParticleMap ParticleMap;
 
   // First and last variables used in different PID algorithms
   static const varType basic_first;
@@ -125,8 +127,8 @@ private:
   void PopulateMap();
   double dEdx, p;
 
-  double get_dEdxChi2(PIDParticle* hypothesis) const;
-  double BetheBloch(PIDParticle* hypothesis) const;
+  double get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const;
+  double BetheBloch(PIDParticles::PIDParticle_base* hypothesis) const;
 
   // This class maintains its own separate particle parameter map with
   // just the basic properties

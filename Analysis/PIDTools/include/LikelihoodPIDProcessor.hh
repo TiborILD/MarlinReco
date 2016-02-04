@@ -26,9 +26,9 @@ public:
   virtual void check( LCEvent * evt );
   virtual void end();
 
-  typedef PIDParticles::ParameterMap ParticleMap;
-  typedef PIDParticles::ParameterMap::iterator particle_iterator;
-  typedef PIDParticles::ParameterMap::const_iterator particle_c_iterator;
+  typedef PIDParticles::LLHypothesesMap ParticleMap;
+  typedef PIDParticles::LLHypothesesMap::iterator particle_iterator;
+  typedef PIDParticles::LLHypothesesMap::const_iterator particle_c_iterator;
   typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
   typedef PIDVariables::VarMap::iterator variable_iterator;
 

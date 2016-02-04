@@ -57,7 +57,7 @@ _algoFlags(MASK_Basic | MASK_dEdx | MASK_Shapes)
   for (unsigned int i=0; i<priors.size(); i++) tot += priors.at(i);
   for (unsigned int i=0; i<priors.size(); i++) priors.at(i) /= tot;
 
-  particlePars = PIDParticles::CreateMap(priors);
+  particlePars = PIDParticles::CreateLLPIDMap(priors);
   // Initialize bestParticle to an invalid particle
   bestParticle = particlePars->end();
 

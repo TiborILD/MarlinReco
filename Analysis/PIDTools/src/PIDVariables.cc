@@ -26,20 +26,14 @@ const double PIDVariables::dEdx_MIP = 1.35e-7;
 
 PIDVariables::PIDVariables() : dEdx(0), p(0) {
   // Create map of particle properties.
-  // Priors are irrelevant for this class. Set them to 0.
-  std::vector<float> dummypriors;
-  for(int i=0; i<PIDParticles::nParticleTypes; i++) dummypriors.push_back(0.);
-  particlePars = PIDParticles::CreateMap(dummypriors);
+  particlePars = PIDParticles::CreateParticleMap();
 
   PopulateMap();
 }
 
 PIDVariables::PIDVariables(EVENT::ReconstructedParticle* _particle) {
   // Create map of particle properties. This must be done first
-  // Priors are irrelevant for this class. Set them to 0.
-  std::vector<float> dummypriors;
-  for(int i=0; i<PIDParticles::nParticleTypes; i++) dummypriors.push_back(0.);
-  particlePars = PIDParticles::CreateMap(dummypriors);
+  particlePars = PIDParticles::CreateParticleMap();
 
   PopulateMap();
   Update(_particle);
@@ -168,7 +162,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
 
 
 
-double PIDVariables::get_dEdxChi2(PIDParticle* hypothesis) const {
+double PIDVariables::get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const {
 
   //get expected dE/dx
   double ExpdEdx=BetheBloch(hypothesis);
@@ -179,7 +173,7 @@ double PIDVariables::get_dEdxChi2(PIDParticle* hypothesis) const {
   return chi2;
 }
 
-double PIDVariables::BetheBloch(PIDParticle* hypothesis) const {
+double PIDVariables::BetheBloch(PIDParticles::PIDParticle_base* hypothesis) const {
 
   Double_t bg=p/hypothesis->mass;
   Double_t b=sqrt(bg*bg/(1.0+bg*bg));

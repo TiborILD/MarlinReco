@@ -7,29 +7,71 @@
 
 #include "PIDParticles.hh"
 
-PIDParticles::ParameterMap* PIDParticles::CreateMap(std::vector<float> priors) {
 
-  ParameterMap *parameterMap = new  ParameterMap;
+static PIDParticles::ParticleMap* PIDParticles::CreateParticleMap() {
 
-  double BBparsElectron[5] = {-2.40638e-03, 7.10337e-01, 2.87718e-01, -1.71591e+00, 0.0};
-  parameterMap->insert(std::pair<particleType, PIDParticle>
-      (electron, PIDParticle("electron", 11, .000510998, priors.at(electron), BBparsElectron)));
+  ParticleMap *parameterMap = new  ParticleMap;
 
-  double BBparsMuon[5] = {8.11408e-02, 9.92207e-01, 7.58509e+05, -1.70167e-01, 4.63670e-04};
-  parameterMap->insert(std::pair<particleType, PIDParticle>
-      (muon, PIDParticle("muon", 13, .105658, priors.at(muon), BBparsMuon)));
+  parameterMap->insert(std::pair<particleType, PIDParticle_base>
+      (electron, electronProperties));
 
-  double BBparsPion[5] = {8.10756e-02, -1.45051e+06, -3.09843e+04, 2.84056e-01, 3.38131e-04};
-  parameterMap->insert(std::pair<particleType, PIDParticle>
-      (pion, PIDParticle("pion", 211, .139570, priors.at(pion), BBparsPion)));
+  parameterMap->insert(std::pair<particleType, PIDParticle_base>
+      (muon, muonProperties));
 
-  double BBparsKaon[5] = {7.96117e-02, 4.13335e+03, 1.13577e+06, 1.80555e-01, -3.15083e-04};
-  parameterMap->insert(std::pair<particleType, PIDParticle>
-      (kaon, PIDParticle("kaon", 321, .493677, priors.at(kaon), BBparsKaon)));
+  parameterMap->insert(std::pair<particleType, PIDParticle_base>
+      (pion, pionProperties));
 
-  double BBparsProton[5] = {7.78772e-02, 4.49300e+04, 9.13778e+04, 1.50088e-01, -6.64184e-04};
-  parameterMap->insert(std::pair<particleType, PIDParticle>
-      (proton, PIDParticle("proton", 2212, .938272, priors.at(proton), BBparsProton)));
+  parameterMap->insert(std::pair<particleType, PIDParticle_base>
+      (kaon, kaonProperties));
+
+  parameterMap->insert(std::pair<particleType, PIDParticle_base>
+      (proton, protonProperties));
+
+  return parameterMap;
+}
+
+
+static PIDParticles::LLHypothesesMap* PIDParticles::CreateLLPIDMap(std::vector<float> priors) {
+
+  LLHypothesesMap *parameterMap = new  LLHypothesesMap;
+
+  parameterMap->insert(std::pair<particleType, LLPIDHypothesis>
+      (electron, LLPIDHypothesis(electronProperties, priors.at(electron))));
+
+  parameterMap->insert(std::pair<particleType, LLPIDHypothesis>
+      (muon, LLPIDHypothesis(muonProperties, priors.at(muon))));
+
+  parameterMap->insert(std::pair<particleType, LLPIDHypothesis>
+      (pion, LLPIDHypothesis(pionProperties, priors.at(pion))));
+
+  parameterMap->insert(std::pair<particleType, LLPIDHypothesis>
+      (kaon, LLPIDHypothesis(kaonProperties, priors.at(kaon))));
+
+  parameterMap->insert(std::pair<particleType, LLPIDHypothesis>
+      (proton, LLPIDHypothesis(protonProperties, priors.at(proton))));
+
+  return parameterMap;
+}
+
+
+static PIDParticles::MVAHypothesesMap* PIDParticles::CreateMVAPIDMap() {
+
+  MVAHypothesesMap *parameterMap = new  MVAHypothesesMap;
+
+  parameterMap->insert(std::pair<particleType, MVAPIDHypothesis>
+      (electron, MVAPIDHypothesis(electronProperties)));
+
+  parameterMap->insert(std::pair<particleType, MVAPIDHypothesis>
+      (muon, MVAPIDHypothesis(muonProperties)));
+
+  parameterMap->insert(std::pair<particleType, MVAPIDHypothesis>
+      (pion, MVAPIDHypothesis(pionProperties)));
+
+  parameterMap->insert(std::pair<particleType, MVAPIDHypothesis>
+      (kaon, MVAPIDHypothesis(kaonProperties)));
+
+  parameterMap->insert(std::pair<particleType, MVAPIDHypothesis>
+      (proton, MVAPIDHypothesis(protonProperties)));
 
   return parameterMap;
 }

@@ -216,9 +216,6 @@ void LikelihoodPIDProcessor::createParticleIDClass(ReconstructedParticle *part,
   for(particle_c_iterator it=particlePars->begin(); it!=particlePars->end(); it++) {
     pidPars.push_back(it->second.Posterior());
   }
-  for(particle_c_iterator it=particlePars->begin(); it!=particlePars->end(); it++) {
-    pidPars.push_back(it->second.DEdxDist());
-  }
 
   
   //set pid results
