@@ -19,6 +19,7 @@
 #define PIDPARTICLES_HH_
 
 #include "TMath.h"
+#include "TMVA/Reader.h"
 #include <map>
 
 
@@ -117,12 +118,12 @@ public:
 
   MVAPIDHypothesis (const char *_name, int _pdg, double _mass, const double* _BBpars, const float mvaCut=0.) :
     PIDParticle_base(_name, _pdg, _mass, _BBpars),
-    _mva(0), _q(0), _mvaCut(mvaCut)
+    _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent"))
   {  }
 
   MVAPIDHypothesis (const PIDParticle_base &base, const float mvaCut=0.) :
     PIDParticle_base(base),
-    _mva(0), _q(0), _mvaCut(mvaCut)
+    _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent"))
   {  }
 
   ~MVAPIDHypothesis() {};
@@ -134,9 +135,16 @@ public:
   void SetMVAout(double mva) { _mva = mva; }
   void SetQ(double q) { _q = q; }
 
+  void AddMVAVariable( const TString& name, Float_t* ptr)
+  { _reader->AddVariable(name, ptr); };
+  void EvaluateMVA(const TString &method) { _mva = _reader->EvaluateMVA(method);};
+  TMVA::IMethod* BookMVA(const TString& method, const TString& wfile)
+  { return _reader->BookMVA(method, wfile); } ;
+
 private:
   double _mva, _q;
   const float _mvaCut;
+  TMVA::Reader* _reader;
 };
 
 

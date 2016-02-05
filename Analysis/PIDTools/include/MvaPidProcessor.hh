@@ -16,7 +16,8 @@
 
 #include <EVENT/LCCollection.h>
 #include <UTIL/PIDHandler.h>
-#include "TMVA/Reader.h"
+// Moving the reader to PIDParticles
+// #include "TMVA/Reader.h"
 
 #include "PIDParticles.hh"
 #include "PIDVariables.hh"
@@ -60,8 +61,9 @@ private:
 
   hypotheses_c_iterator _bestHypothesis; // Found by Identify()
 
-  typedef std::map<particleType, TMVA::Reader*> ReaderMap;
-  ReaderMap _readerMap;
+// Moving this to the hypotheses map
+//  typedef std::map<particleType, TMVA::Reader*> ReaderMap;
+//  ReaderMap _readerMap;
   PIDVariables *_variables;
   // Temporary copy of the variable values for the MVA reader
   // Workaround because the TMVA::Reader::AddVariable(...)
@@ -72,7 +74,7 @@ private:
   std::string _description;
 
   LCCollection* _pfoCol;
-  // Parameters to write to LCIO (should these be static const?)
+  // Parameters to write to LCIO (should these be const?)
   // Would it be better if there was an overloaded PIDHandler::setParticleID()
   // that took a std::map<std::string, float>?
   FloatVec _pidPars;
@@ -84,7 +86,7 @@ private:
   // MVA method used
   std::string _mvaMethod;
   std::string _inputPFOsCollection;
-  std::string _weightFileName;
+  std::vector<std::string> _weightFileNames;
 
   // mu-pi separation
   std::vector<std::string> _muPiWeightFileNames; // steerable
