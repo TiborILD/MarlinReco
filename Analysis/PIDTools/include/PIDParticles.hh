@@ -31,19 +31,19 @@ public:
     pdg(_pdg), mass(_mass), _name(name)
   {
     for (int i=0; i<5; i++) _BBpars[i] = BBpars[i];
-  };
+  }
   PIDParticle_base (const PIDParticle_base &base) :
     pdg(base.pdg), mass(base.mass), _name(base.Name())
   {
     for (int i=0; i<5; i++) _BBpars[i] = base.GetBBpars()[i];
-  };
-  ~PIDParticle_base() {};
+  }
+  ~PIDParticle_base() {}
 
   const int pdg;
   const double mass;
 
-  const double * GetBBpars() const { return _BBpars; };
-  const char* Name() const {return _name;};
+  const double * GetBBpars() const { return _BBpars; }
+  const char* Name() const {return _name;}
 
 private:
   // There is no setter for BBpars - they are set in the constructor and do not change!
@@ -81,14 +81,14 @@ public:
                float _prior, const double* _BBpars) :
     PIDParticle_base(_name, _pdg, _mass, _BBpars),
     prior(_prior), _posterior(0), _logL(0), _threshold(0)
-  {  };
+  {  }
 
   LLPIDHypothesis (const PIDParticle_base &base, float _prior) :
     PIDParticle_base(base),
     prior(_prior), _posterior(0), _logL(0), _threshold(0)
-  {  };
+  {  }
 
-  ~LLPIDHypothesis() {};
+  ~LLPIDHypothesis() {}
 
   const float prior;
 
@@ -96,12 +96,12 @@ public:
   double LogL() const { return _logL; }
   double Threshold() const { return _threshold; }
 
-  void SetPosterior(double posterior) { _posterior = posterior; };
-  void SetThreshold(double thr) { _threshold = thr; };
+  void SetPosterior(double posterior) { _posterior = posterior; }
+  void SetThreshold(double thr) { _threshold = thr; }
 
-  void AddLogL(double logLpartial) { _logL += logLpartial; };
+  void AddLogL(double logLpartial) { _logL += logLpartial; }
 
-  void ResetLogL() { _logL=0.; };
+  void ResetLogL() { _logL=0.; }
 
 private:
   double _posterior, _logL;
@@ -115,26 +115,28 @@ private:
 class MVAPIDHypothesis : public PIDParticle_base {
 public:
 
-  MVAPIDHypothesis (const char *_name, int _pdg, double _mass, const double* _BBpars) :
+  MVAPIDHypothesis (const char *_name, int _pdg, double _mass, const double* _BBpars, const float mvaCut=0.) :
     PIDParticle_base(_name, _pdg, _mass, _BBpars),
-    _mva(0), _q(0)
-  {  };
+    _mva(0), _q(0), _mvaCut(mvaCut)
+  {  }
 
-  MVAPIDHypothesis (const PIDParticle_base &base) :
+  MVAPIDHypothesis (const PIDParticle_base &base, const float mvaCut=0.) :
     PIDParticle_base(base),
-    _mva(0), _q(0)
-  {  };
+    _mva(0), _q(0), _mvaCut(mvaCut)
+  {  }
 
   ~MVAPIDHypothesis() {};
 
-  float GetMVAout() const { return _mva; }
-  float GetQ() const { return _q; }
+  double GetMVAout() const { return _mva; }
+  double GetQ() const { return _q; }
+  const float GetMVAcut() const { return _mvaCut; }
 
-  void SetMVAout(float mva) { _mva = mva; }
-  void SetQ(float q) { _q = q; }
+  void SetMVAout(double mva) { _mva = mva; }
+  void SetQ(double q) { _q = q; }
 
 private:
-  float _mva, _q;
+  double _mva, _q;
+  const float _mvaCut;
 };
 
 

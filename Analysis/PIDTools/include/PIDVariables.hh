@@ -39,7 +39,7 @@ public:
 
   float Value() const { return value; };
   const char *Name() const { return name; };
-  const float &Reference() const { return value; };
+//  const float *Pointer() const { return &value; };
 
   const char *AxisTitle() const { return axisTitle; };
   int NBinsV() const { return nBinsV; };
@@ -110,11 +110,13 @@ public:
   static const double dEdx_MIP;
 
 
-  double GetValue(varType i) const { return varMap.at(i).Value(); };
+  float GetValue(varType i) const { return varMap.at(i).Value(); };
   const VarMap* GetMap() const { return &varMap; };
   const ParticleMap* GetParticleMap() const { return particlePars; };
-  double GetDEdx() const { return dEdx; };
-  double GetP() const { return p; };
+  float GetDEdx() const { return dEdx; };
+  float GetP() const { return p; };
+//  const float *GetPp() const { return &p; };
+
 
   void Update(EVENT::ReconstructedParticle*);
   void Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p);
@@ -125,7 +127,7 @@ protected:
 
 private:
   void PopulateMap();
-  double dEdx, p;
+  float dEdx, p;
 
   double get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const;
   double BetheBloch(PIDParticles::PIDParticle_base* hypothesis) const;

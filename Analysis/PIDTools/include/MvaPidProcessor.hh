@@ -15,13 +15,19 @@
 #include <marlin/Processor.h>
 
 #include <EVENT/LCCollection.h>
+#include <UTIL/PIDHandler.h>
 #include "TMVA/Reader.h"
 
 #include "PIDParticles.hh"
 #include "PIDVariables.hh"
 
+using UTIL::PIDHandler;
+
 using namespace lcio ;
 using namespace marlin ;
+
+using PIDParticles::MVAHypothesesMap;
+using PIDParticles::particleType;
 
 class LowMomentumMuPiSeparationPID_BDTG;
 
@@ -35,28 +41,44 @@ public:
   virtual void check( LCEvent * evt );
   virtual void end();
 
-  typedef PIDParticles::MVAHypothesesMap ParticleMap;
-  typedef PIDParticles::MVAHypothesesMap::iterator particle_iterator;
-  typedef PIDParticles::MVAHypothesesMap::const_iterator particle_c_iterator;
+  typedef MVAHypothesesMap::iterator hypotheses_iterator;
+  typedef MVAHypothesesMap::const_iterator hypotheses_c_iterator;
 
+  typedef PIDVariables::VarMap VariableMap;
   typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
   typedef PIDVariables::VarMap::iterator variable_iterator;
 
+  static const char *algoName;
 
 private:
 
+  // Updates _variables, sets _mvaVars, evaluates MVA, selects best hypothesis
+  // Fills _pidPars
+  void Identify(ReconstructedParticle*);
   // Test statistic for making decision if multiple hypotheses make the MVA cut
-  double GetQ(particle_iterator);
+  double GetQ(hypotheses_c_iterator);
 
-  TMVA::Reader *_reader;
+  hypotheses_c_iterator _bestHypothesis; // Found by Identify()
+
+  typedef std::map<particleType, TMVA::Reader*> ReaderMap;
+  ReaderMap _readerMap;
   PIDVariables *_variables;
-  ParticleMap *_hypotheses;
+  // Temporary copy of the variable values for the MVA reader
+  // Workaround because the TMVA::Reader::AddVariable(...)
+  // does not take const pointers
+  std::map<const char*, float> _mvaVars;
+  MVAHypothesesMap *_hypotheses;
 
   std::string _description;
 
   LCCollection* _pfoCol;
-  // Parameters to write to LCIO (should this be static const?)
-  std::map<std::string, float> _pidPars;
+  // Parameters to write to LCIO (should these be static const?)
+  // Would it be better if there was an overloaded PIDHandler::setParticleID()
+  // that took a std::map<std::string, float>?
+  FloatVec _pidPars;
+  StringVec _pidParNames;
+
+  PIDHandler *_pidh;
 
   // Steerables:
   // MVA method used
