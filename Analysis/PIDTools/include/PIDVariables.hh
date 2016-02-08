@@ -19,6 +19,7 @@
 #define PIDVARIABLES_H_ 1
 
 #include "TVector3.h"
+#include "TString.h"
 #include "EVENT/Cluster.h"
 #include "EVENT/Track.h"
 #include "EVENT/ReconstructedParticle.h"
@@ -29,37 +30,41 @@
 
 class PIDVariable {
 public:
-  PIDVariable(const char*_name, const char *_axisTitle,
-      const int _nBinsP, const double *_pBins,
-      const double _loLim, const double _hiLim, const int _nBinsV=50) :
-    value(0.), name(_name), axisTitle(_axisTitle),
-    nBinsV(_nBinsV), loLim(_loLim), hiLim(_hiLim),
-    nBinsP(_nBinsP), pBins(_pBins) {};
+  PIDVariable(const char*name, const char *description, const char *unit,
+      const int nBinsP, const double *pBins,
+      const double loLim, const double hiLim, const int nBinsV=50) :
+    value(0.), _name(name), _description(description), _unit(unit),
+    _nBinsV(nBinsV), _loLim(loLim), _hiLim(hiLim),
+    _nBinsP(nBinsP), _pBins(pBins) {};
   ~PIDVariable() {};
 
   float Value() const { return value; };
-  const char *Name() const { return name; };
+  const char *Name() const { return _name; };
 //  const float *Pointer() const { return &value; };
 
-  const char *AxisTitle() const { return axisTitle; };
-  int NBinsV() const { return nBinsV; };
-  double LoLim() const { return loLim; };
-  double HiLim() const { return hiLim; };
-  int NBinsP() const { return nBinsP; };
-  const double *PBins() const { return pBins; };
+  const char *AxisTitle() const { if(_unit[0] == '\0') return _description;
+                                  else return Form("%s (%s)", _description, _unit); };
+  const char *Description() const { return _description; };
+  const char *Unit() const { return _unit; } ;
+  int NBinsV() const { return _nBinsV; };
+  double LoLim() const { return _loLim; };
+  double HiLim() const { return _hiLim; };
+  int NBinsP() const { return _nBinsP; };
+  const double *PBins() const { return _pBins; };
 
   void SetValue(double val) { value = val; };
 
 private:
   float value;
-  const char *name;
-  const char *axisTitle;
+  const char *_name;
+  const char *_description;
+  const char *_unit;
   // No. of bins and limits of the variable distribution histogram
-  const int nBinsV;
-  const double loLim, hiLim;
+  const int _nBinsV;
+  const double _loLim, _hiLim;
   // Slicing in reconstructed momentum
-  const int nBinsP;
-  const double *pBins;
+  const int _nBinsP;
+  const double *_pBins;
 };
 
 

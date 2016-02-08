@@ -15,6 +15,8 @@
 
 const char *MvaPidProcessor::algoName = "MvaPid";
 
+MvaPidProcessor aMvaPidProcessor ;
+
 MvaPidProcessor::MvaPidProcessor() :
   Processor("MvaPidProcessor"),
   _variables(NULL), _hypotheses(NULL),
