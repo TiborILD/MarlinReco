@@ -93,7 +93,7 @@ class PIDvarPDF : public Processor {
 
  protected:
 
-  /** Input collection name.
+  /** LCIO collection names.
    */
   std::string _trueToReco ;
   std::string _recoToTrue ;

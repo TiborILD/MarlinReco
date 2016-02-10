@@ -40,7 +40,7 @@ public:
 
   float Value() const { return value; };
   const char *Name() const { return _name; };
-//  const float *Pointer() const { return &value; };
+  const float *Address() const { return &value; };
 
   const char *AxisTitle() const { if(_unit[0] == '\0') return _description;
                                   else return Form("%s (%s)", _description, _unit); };
@@ -125,6 +125,7 @@ public:
 
   void Update(EVENT::ReconstructedParticle*);
   void Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p);
+  void SetOutOfRange();
 
 protected:
   VarMap varMap;

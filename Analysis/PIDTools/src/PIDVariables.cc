@@ -161,6 +161,11 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
 }
 
 
+void PIDVariables::SetOutOfRange() {
+  for (VarMap::iterator it=varMap.begin(); it!=varMap.end(); it++)
+    { it->second.SetValue(-DBL_MAX); }
+}
+
 
 double PIDVariables::get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const {
 
