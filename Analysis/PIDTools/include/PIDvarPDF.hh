@@ -8,13 +8,14 @@
 #include <EVENT/LCRelation.h>
 #include <EVENT/MCParticle.h>
 #include <IMPL/LCCollectionVec.h>
+
+/*
 #include "UTIL/LCRelationNavigator.h"
-#include "UTIL/LCIterator.h"
 #include "UTIL/Operators.h"
 #include <UTIL/BitField64.h>
 #include <UTIL/ILDConf.h>
 #include <UTIL/BitSet32.h>
-
+*/
 #include <TTree.h>
 #include <TH1F.h>
 #include <TF1.h>

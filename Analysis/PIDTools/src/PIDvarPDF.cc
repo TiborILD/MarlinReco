@@ -1,7 +1,9 @@
 #include <PIDvarPDF.hh>
 
 #include <UTIL/LCRelationNavigator.h>
+#include "UTIL/LCIterator.h"
 #include <UTIL/PIDHandler.h>
+
 #include "TROOT.h"
 #include "TString.h"
 #include <TH2F.h>
@@ -326,7 +328,7 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
       streamlog_out(DEBUG) << "no ReconstructedParticle found for this mcp!" << std::endl ;
 
       for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++)
-      { sensitiveVars[it->first].push_back(-DBL_MAX); }
+      { sensitiveVars[it->first].push_back(-FLT_MAX); }
 
       seenP.push_back(0);
       seenPt.push_back(0);

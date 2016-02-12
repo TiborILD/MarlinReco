@@ -5,32 +5,77 @@
  *      Author: S. Lukic
  */
 
-#include "TCut.h"
-
 #include "MvaPidTraining.hh"
 
+#include <EVENT/LCCollection.h>
+#include <EVENT/MCParticle.h>
+#include <UTIL/LCRelationNavigator.h>
+#include <UTIL/LCIterator.h>
+
+#include "TFile.h"
+#include "TCut.h"
+#include "TMVA/Factory.h"
+//#include "TObjArray.h"
+#include "TCanvas.h"
+
+
+MvaPidTraining aMvaPidTraining;
+
 MvaPidTraining::MvaPidTraining() :
-  Processor("LikelihoodPIDProcessor"),
+  Processor("MvaPidTraining"),
   _description("Training of particle ID using MVA"),
-  _factory(NULL), _rootfile(NULL), _tree(NULL),
+  //_rootfile(NULL),
+  _tree(NULL),
   _seenP(0.), _truePDG(0), _isReconstructed(false),
   _signalPDG(0),
   _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0)
 {
+  registerInputCollection( LCIO::LCRELATION,
+         "MCTruth2RecoLinkCollectionName" ,
+         "true - reco relation collection"  ,
+         _trueToReco,
+         std::string("MCTruthRecoLink") ) ;
+
+
+  registerInputCollection( LCIO::LCRELATION,
+         "Reco2MCTruthLinkCollectionName" ,
+         "reco - true relation collection"  ,
+         _recoToTrue,
+         std::string("RecoMCTruthLink") ) ;
+
+
+  registerInputCollection( LCIO::MCPARTICLE,
+         "MCParticleCollection" ,
+         "Name of the MCParticle input collection"  ,
+         _mcParticleCollectionName ,
+         std::string("MCParticle") ) ;
+
+/*
+  registerInputCollection( LCIO::RECONSTRUCTEDPARTICLE,
+                            "PFOs" ,
+                            "particle flow objects"  ,
+                            _pandoraPFOs ,
+                            std::string("PandoraPFOs") ) ;
+*/
   registerProcessorParameter( "SignalPDG" ,
             "PDG of the signal hypothesis for this training",
             _signalPDG,
             11 );
 
   registerProcessorParameter( "RootFileName" ,
-            "Root file with data for training",
+            "Root file with MVA response data",
             _rootFileName,
-            std::string("MvaPidTraining.root") );
-
+            std::string("MvaPidTraining.response.root") );
+/**/
   registerProcessorParameter( "MVAMethod" ,
             "MVA method name",
             _mvaMethod,
             std::string("BDT") );
+
+  registerProcessorParameter( "MVAMethodOptions" ,
+            "MVA method options",
+            _mvaMethodOptions,
+            std::string("") );
 
   registerProcessorParameter( "WeightFileName" ,
             "File name to write weights",
@@ -57,8 +102,11 @@ void MvaPidTraining::init() {
       it++)
   {
 //    _tree->Branch(it->second.Name(), &sensitiveVars[it->first]);
-    _tree->Branch(it->second.Name(), it->second.Address());
+    _trainingVars.insert( std::pair<variableType, float>(it->first, 0.) );
+//    _tree->Branch(it->second.Name(), it->second.Address());
+    _tree->Branch(it->second.Name(), &(_trainingVars.at(it->first)));
   }
+
   _tree->Branch("seenP",&_seenP) ;
   _tree->Branch("truePDG",&_truePDG) ;
   _tree->Branch("isReconstructed",&_isReconstructed) ;
@@ -125,10 +173,9 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
       }
     }
 
-    if (maxtrckweight > 0) {
-      imaxweight = imaxtrckweight;
-      maxweight = maxtrckweight;
-    }
+    imaxweight = imaxtrckweight;
+    maxweight = maxtrckweight;
+
     if (imaxcaloweight != imaxtrckweight) _nTrkCaloMismatch++;
 
     streamlog_out(DEBUG) << "Found reco particle for mcp at imaxweight = " << imaxweight << " with weight = " << maxweight << std::endl ;
@@ -159,6 +206,8 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
   }  // loop over MCPs
 
 
+  for(std::map<variableType, float>::iterator vit=_trainingVars.begin(); vit!=_trainingVars.end(); vit++)
+  { vit->second = _variables.GetValue(vit->first); }
   _tree->Fill();
   _nEvt++;
 
@@ -168,36 +217,70 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
 }
 
 
+void MvaPidTraining::check( LCEvent * evt ) {
+
+}
+
 
 
 void MvaPidTraining::end() {
 
-  // FIXME: Can be local?
-  _factory = new TMVA::Factory( "TMVAClassification", _weightFileName,
+  TFile* outputFile = TFile::Open( _rootFileName.c_str(), "RECREATE" );
+  TMVA::Factory * factory = new TMVA::Factory(_weightFileName, outputFile,
       "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification");
+
 
 
   for(variable_c_iterator vit=_variables.GetMap()->begin(); vit!=_variables.GetMap()->end(); vit++)
   {
-    _factory->AddVariable(vit->second.Name(), vit->second.Description(), vit->second.Unit(), 'F');
+    factory->AddVariable(vit->second.Name(), vit->second.Description(), vit->second.Unit(), 'F');
   }
-  _factory->AddVariable("seenP", "Measured momentum", "GeV", 'F');
+  factory->AddVariable("seenP", "Measured momentum", "GeV", 'F');
+  // Do we need these spectators for the cuts?
 //  _factory->AddSpectator("truePDG", "True PDG", "", 'I');
 //  _factory->AddSpectator("isReconstructed", "Boolean true if MC Particle reconstructed", "", 'B');
 
   TCut signalCut("signalCut", Form("truePDG==%d&&isReconstructed", _signalPDG));
-  TCut backgroundCut("backgroundCut", Form("truePDG!=%d&&isReconstructed", _signalPDG));
-  _factory->SetInputTrees(_tree, signalCut, backgroundCut);
+  TCut backgroundCut("backgroundCut", Form("(truePDG!=%d)&&isReconstructed", _signalPDG));
 
-  _factory->BookMethod(_mvaMethod, _mvaMethod); // Fixme: Fix this
+/*  TObjArray* listb = _tree->GetListOfBranches();
 
-  _factory->TrainAllMethods();
+  std::cout << "Branches in the training tree:\n";
+//  for(TObjArray::Iterator_t bit=listb->begin(); bit!=listb->end(); bit++) {
+  for(int i=0; i<listb->GetEntries(); i++) {
+    std::cout << ((TBranch*)(listb->At(i)))->GetName() << std::endl;
+  }
 
-  // Test
-  // Evaluate
-  // Store info on "optimal" cuts, impact of variables etc.
+  TCanvas *c = new TCanvas;
+  for(variable_c_iterator vit=_variables.GetMap()->begin(); vit!=_variables.GetMap()->end(); vit++) {
+    const char *var = vit->second.Name();
+    _tree->Draw(var, signalCut);
+    c->Print(Form("signal_%s.pdf", var));
+    _tree->Draw(var, backgroundCut);
+    c->Print(Form("background_%s.pdf", var));
+    _tree->Draw(var, "truePDG==13&&isReconstructed");
+    c->Print(Form("muons_%s.pdf", var));
+  }
+  delete c; c=NULL;
+*/
+  factory->SetInputTrees(_tree, signalCut, backgroundCut);
 
-  // Output messages mismatched track/calo etc.
+  // Fixme: Is this ok or needs a map of available methods with options
+  // Or should options be steerable?
+  factory->BookMethod(_mvaMethod, _mvaMethod, _mvaMethodOptions);
+  factory->PrintHelpMessage(_mvaMethod);
+
+  factory->TrainAllMethods();
+  factory->TestAllMethods();
+  factory->EvaluateAllMethods();
+
+  // TODO:
+  // Output optimal cuts (need a definition of "optimal"), impact of variables etc.
+  // Store optimal cuts
+
+  // Output messages on mismatched track/calo etc.
+
+  outputFile->Close();
 
 }
 

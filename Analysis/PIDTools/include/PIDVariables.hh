@@ -54,7 +54,7 @@ public:
 
   void SetValue(double val) { value = val; };
 
-private:
+protected:
   float value;
   const char *_name;
   const char *_description;
@@ -135,7 +135,7 @@ private:
   void PopulateMap();
   float dEdx, p;
 
-  double get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const;
+  float get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const;
   double BetheBloch(PIDParticles::PIDParticle_base* hypothesis) const;
 
   // This class maintains its own separate particle parameter map with

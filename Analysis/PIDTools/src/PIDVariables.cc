@@ -138,10 +138,10 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   else
   {  // If shapes empty, push the value out of bounds. Then these variables
      // give the same likelihood for all particle types
-    varMap.at(CLUSHAPE_Chi2).SetValue(-DBL_MAX);
-    varMap.at(CLUSHAPE_DiscrL).SetValue(-DBL_MAX);
-    varMap.at(CLUSHAPE_DiscrT).SetValue(-DBL_MAX);
-    varMap.at(CLUSHAPE_xl20).SetValue(-DBL_MAX);
+    varMap.at(CLUSHAPE_Chi2).SetValue(-1.);
+    varMap.at(CLUSHAPE_DiscrL).SetValue(-100.);
+    varMap.at(CLUSHAPE_DiscrT).SetValue(-1.);
+    varMap.at(CLUSHAPE_xl20).SetValue(-1.);
   }
 
   // dE/dx
@@ -163,18 +163,22 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
 
 void PIDVariables::SetOutOfRange() {
   for (VarMap::iterator it=varMap.begin(); it!=varMap.end(); it++)
-    { it->second.SetValue(-DBL_MAX); }
+    { it->second.SetValue(-FLT_MAX); }
 }
 
 
-double PIDVariables::get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const {
+float PIDVariables::get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const {
 
   //get expected dE/dx
   double ExpdEdx=BetheBloch(hypothesis);
 
-  //get chi2!!(so far 5% error assumed. conservative)
-  Double_t chi2=TMath::Power((dEdx-ExpdEdx)/(0.05*dEdx),2.0);
-  if(dEdx-ExpdEdx<0.0) chi2=-chi2;    //get signed chi2
+  float chi2 = -100.;
+  if(dEdx>FLT_MIN) {
+    //get chi2!!(so far 5% error assumed. conservative)
+    chi2=TMath::Power((dEdx-ExpdEdx)/(0.05*dEdx),2.0);
+    if(dEdx-ExpdEdx<0.0) chi2=-chi2;    //get signed chi2
+  }
+
   return chi2;
 }
 

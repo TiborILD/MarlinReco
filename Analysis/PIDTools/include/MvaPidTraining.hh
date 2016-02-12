@@ -11,29 +11,9 @@
 #define MVAPIDTRAINING_HH_
 
 
-/*
- * MvaPidProcessor.hh
- *
- * Distinguish particle type using MVA with sensitive variables formed
- * from calorimetric deposits, shower shapes and specific energy
- * loss and momentum measured in the tracker
- *
- * FIXME: Does this actually need to be a Marlin processor?
- * It does not read any lcio files, only root files. It could be a
- * standalone utility.
- *
- *  Created on: Feb 4, 2016
- *      Author: Strahinja Lukic
- */
-
-#ifndef MVAPIDPROCESSOR_HH_
-#define MVAPIDPROCESSOR_HH_
-
 #include <marlin/Processor.h>
 
-#include <EVENT/LCCollection.h>
 
-#include "TMVA/Factory.h"
 
 #include "PIDParticles.hh"
 #include "PIDVariables.hh"
@@ -45,6 +25,7 @@ using PIDParticles::MVAHypothesesMap;
 using PIDParticles::particleType;
 
 class LowMomentumMuPiSeparationPID_BDTG;
+
 
 class MvaPidTraining : public Processor{
 public:
@@ -59,6 +40,7 @@ public:
   typedef MVAHypothesesMap::iterator hypotheses_iterator;
   typedef MVAHypothesesMap::const_iterator hypotheses_c_iterator;
 
+  typedef PIDVariables::varType variableType;
   typedef PIDVariables::VarMap VariableMap;
   typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
   typedef PIDVariables::VarMap::iterator variable_iterator;
@@ -70,8 +52,8 @@ protected:
  std::string _trueToReco ;
  std::string _recoToTrue ;
  std::string _mcParticleCollectionName ;
- std::string _trackColName ;
- std::string _pandoraPFOs ;
+// std::string _trackColName ;
+// std::string _pandoraPFOs ;
 
 
 
@@ -79,10 +61,10 @@ private:
 
   std::string _description;
 
-  TMVA::Factory *_factory;
-  TFile* _rootfile;
+//  TFile* _rootfile;
   TTree* _tree;
 
+  std::map<variableType, float> _trainingVars;
   PIDVariables _variables;
   float _seenP;
   int _truePDG;
@@ -93,6 +75,7 @@ private:
   int _signalPDG;
   std::string _rootFileName;
   std::string _mvaMethod;
+  std::string _mvaMethodOptions;
   std::string _weightFileName;
 
   // Counters
