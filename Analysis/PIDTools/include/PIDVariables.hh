@@ -26,7 +26,7 @@
 
 #include "PIDParticles.hh"
 
-// test comment
+class TRandom3;
 
 class PIDVariable {
 public:
@@ -136,12 +136,14 @@ private:
   float dEdx, p;
 
   float get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const;
+  float get_dEdxSignedLogChi2(PIDParticles::PIDParticle_base* hypothesis) const;
   double BetheBloch(PIDParticles::PIDParticle_base* hypothesis) const;
 
   // This class maintains its own separate particle parameter map with
   // just the basic properties
   ParticleMap *particlePars;
 
+  TRandom3 *_rand;
 };
 
 

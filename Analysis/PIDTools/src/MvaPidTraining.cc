@@ -50,17 +50,12 @@ MvaPidTraining::MvaPidTraining() :
          _mcParticleCollectionName ,
          std::string("MCParticle") ) ;
 
-/*
-  registerInputCollection( LCIO::RECONSTRUCTEDPARTICLE,
-                            "PFOs" ,
-                            "particle flow objects"  ,
-                            _pandoraPFOs ,
-                            std::string("PandoraPFOs") ) ;
-*/
+
   registerProcessorParameter( "SignalPDG" ,
             "PDG of the signal hypothesis for this training",
             _signalPDG,
             11 );
+
 
   registerProcessorParameter( "RootFileName" ,
             "Root file with MVA response data",
@@ -203,12 +198,14 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
       _seenP = 0.;
 
     }
+
+    for(std::map<variableType, float>::iterator vit=_trainingVars.begin(); vit!=_trainingVars.end(); vit++)
+    { vit->second = _variables.GetValue(vit->first); }
+    _tree->Fill();
+
   }  // loop over MCPs
 
 
-  for(std::map<variableType, float>::iterator vit=_trainingVars.begin(); vit!=_trainingVars.end(); vit++)
-  { vit->second = _variables.GetValue(vit->first); }
-  _tree->Fill();
   _nEvt++;
 
   if (_nEvt%1000 == 0)
@@ -243,7 +240,7 @@ void MvaPidTraining::end() {
   TCut signalCut("signalCut", Form("truePDG==%d&&isReconstructed", _signalPDG));
   TCut backgroundCut("backgroundCut", Form("(truePDG!=%d)&&isReconstructed", _signalPDG));
 
-/*  TObjArray* listb = _tree->GetListOfBranches();
+/**/  TObjArray* listb = _tree->GetListOfBranches();
 
   std::cout << "Branches in the training tree:\n";
 //  for(TObjArray::Iterator_t bit=listb->begin(); bit!=listb->end(); bit++) {
@@ -252,6 +249,7 @@ void MvaPidTraining::end() {
   }
 
   TCanvas *c = new TCanvas;
+  c->SetLogy();
   for(variable_c_iterator vit=_variables.GetMap()->begin(); vit!=_variables.GetMap()->end(); vit++) {
     const char *var = vit->second.Name();
     _tree->Draw(var, signalCut);
@@ -262,7 +260,7 @@ void MvaPidTraining::end() {
     c->Print(Form("muons_%s.pdf", var));
   }
   delete c; c=NULL;
-*/
+
   factory->SetInputTrees(_tree, signalCut, backgroundCut);
 
   // Fixme: Is this ok or needs a map of available methods with options

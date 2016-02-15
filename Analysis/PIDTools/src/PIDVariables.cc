@@ -2,6 +2,8 @@
 //#include "PIDParticles.hh"
 #include "LikelihoodPID.hh"
 
+#include "TRandom3.h"
+
 /*******************************************************
  *
  *   Implementation of the PIDVariables class
@@ -27,6 +29,7 @@ const double PIDVariables::dEdx_MIP = 1.35e-7;
 PIDVariables::PIDVariables() : dEdx(0), p(0) {
   // Create map of particle properties.
   particlePars = PIDParticles::CreateParticleMap();
+  _rand = new TRandom3;
 
   PopulateMap();
 }
@@ -34,6 +37,7 @@ PIDVariables::PIDVariables() : dEdx(0), p(0) {
 PIDVariables::PIDVariables(EVENT::ReconstructedParticle* _particle) {
   // Create map of particle properties. This must be done first
   particlePars = PIDParticles::CreateParticleMap();
+  _rand = new TRandom3;
 
   PopulateMap();
   Update(_particle);
@@ -90,6 +94,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
       hcal += sde[1];
       mucal+= sde[2];
     }
+    // FIXME: DO we really want to use only the zeroth cluster?
     shapes=cluvec[0]->getShape();
   }
   else {
@@ -126,30 +131,43 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   }
   else { varMap.at(CALO_EFrac).SetValue( -1. ); }
 
-  varMap.at(CALO_MuSys).SetValue(mucal);
+  // Introducing a very small additive spread to avoid problems with TMVA for electrons
+  varMap.at(CALO_MuSys).SetValue(mucal+_rand->Gaus(0.,1.e-6));
 
   // Shower shapes
   if(shapes.size()!=0){
     varMap.at(CLUSHAPE_Chi2).SetValue(shapes[0]);
-    varMap.at(CLUSHAPE_DiscrL).SetValue(shapes[5]);
-    varMap.at(CLUSHAPE_DiscrT).SetValue(fabs(shapes[3])/(shapes[6]));
+    varMap.at(CLUSHAPE_DiscrL).SetValue(TMath::Sign(float(TMath::Log(fabs(shapes[5])+FLT_MIN)), shapes[5]));
+//    varMap.at(CLUSHAPE_DiscrL).SetValue(shapes[5]);
+//    varMap.at(CLUSHAPE_DiscrT).SetValue(fabs(shapes[3]/(shapes[6])));
+    if(fabs(shapes[3]) < FLT_MAX)
+    {  varMap.at(CLUSHAPE_DiscrT).SetValue(TMath::Sign(float(TMath::Log(shapes[3]+FLT_MIN)), shapes[3])); }
+    else { varMap.at(CLUSHAPE_DiscrT).SetValue(_rand->Gaus(-1.,1.e-6)); }
+//    varMap.at(CLUSHAPE_DiscrT).SetValue(shapes[3]);
     varMap.at(CLUSHAPE_xl20).SetValue(shapes[15]/(2.0*3.50));
   }
   else
   {  // If shapes empty, push the value out of bounds. Then these variables
      // give the same likelihood for all particle types
-    varMap.at(CLUSHAPE_Chi2).SetValue(-1.);
-    varMap.at(CLUSHAPE_DiscrL).SetValue(-100.);
-    varMap.at(CLUSHAPE_DiscrT).SetValue(-1.);
-    varMap.at(CLUSHAPE_xl20).SetValue(-1.);
+    varMap.at(CLUSHAPE_Chi2).SetValue(_rand->Gaus(-1.,1.e-6));
+    varMap.at(CLUSHAPE_DiscrL).SetValue(_rand->Gaus(-100.,1.e-6));
+    varMap.at(CLUSHAPE_DiscrT).SetValue(_rand->Gaus(-1.,1.e-6));
+    varMap.at(CLUSHAPE_xl20).SetValue(_rand->Gaus(-1.,1.e-6));
   }
 
   // dE/dx
+  /*
   varMap.at(DEDX_Chi2electron).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::electron))) );
   varMap.at(DEDX_Chi2muon).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::muon))) );
   varMap.at(DEDX_Chi2pion).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::pion))) );
   varMap.at(DEDX_Chi2kaon).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::kaon))) );
   varMap.at(DEDX_Chi2proton).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::proton))) );
+*/
+  varMap.at(DEDX_Chi2electron).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::electron))) );
+  varMap.at(DEDX_Chi2muon).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::muon))) );
+  varMap.at(DEDX_Chi2pion).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::pion))) );
+  varMap.at(DEDX_Chi2kaon).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::kaon))) );
+  varMap.at(DEDX_Chi2proton).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::proton))) );
 
   /* The following anyway does not correspond to histograms in the standard ILDConfiguration.
   for(VarMap::iterator it=varMap.find(dEdx_first); it!=varMap.find(N_VarTypes); it++)
@@ -170,7 +188,7 @@ void PIDVariables::SetOutOfRange() {
 float PIDVariables::get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const {
 
   //get expected dE/dx
-  double ExpdEdx=BetheBloch(hypothesis);
+  float ExpdEdx=BetheBloch(hypothesis);
 
   float chi2 = -100.;
   if(dEdx>FLT_MIN) {
@@ -180,6 +198,20 @@ float PIDVariables::get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) con
   }
 
   return chi2;
+}
+
+float PIDVariables::get_dEdxSignedLogChi2(PIDParticles::PIDParticle_base* hypothesis) const {
+
+  //get expected dE/dx
+  float ExpdEdx=BetheBloch(hypothesis);
+
+  float result = _rand->Gaus(-100., 1e-6);
+  if(dEdx>FLT_MIN) {
+    float normdev = (dEdx-ExpdEdx)/(0.05*dEdx);
+    result = TMath::Sign(float(2.*TMath::Log(fabs(normdev))+FLT_MIN), normdev);
+  }
+
+  return result;
 }
 
 double PIDVariables::BetheBloch(PIDParticles::PIDParticle_base* hypothesis) const {
