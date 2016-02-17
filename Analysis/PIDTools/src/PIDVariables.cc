@@ -131,7 +131,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   }
   else { varMap.at(CALO_EFrac).SetValue( -1. ); }
 
-  // Introducing a very small additive spread to avoid problems with TMVA for electrons
+  // Introducing a very small additive spread to avoid complaints in TMVA for electrons
   varMap.at(CALO_MuSys).SetValue(mucal+_rand->Gaus(0.,1.e-6));
 
   // Shower shapes
@@ -139,11 +139,11 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
     varMap.at(CLUSHAPE_Chi2).SetValue(shapes[0]);
     varMap.at(CLUSHAPE_DiscrL).SetValue(TMath::Sign(float(TMath::Log(fabs(shapes[5])+FLT_MIN)), shapes[5]));
 //    varMap.at(CLUSHAPE_DiscrL).SetValue(shapes[5]);
-//    varMap.at(CLUSHAPE_DiscrT).SetValue(fabs(shapes[3]/(shapes[6])));
     if(fabs(shapes[3]) < FLT_MAX)
-    {  varMap.at(CLUSHAPE_DiscrT).SetValue(TMath::Sign(float(TMath::Log(shapes[3]+FLT_MIN)), shapes[3])); }
+    {
+      // varMap.at(CLUSHAPE_DiscrT).SetValue(fabs(shapes[3]/(shapes[6])));
+      varMap.at(CLUSHAPE_DiscrT).SetValue(TMath::Sign(float(TMath::Log(shapes[3]+FLT_MIN)), shapes[3])); }
     else { varMap.at(CLUSHAPE_DiscrT).SetValue(_rand->Gaus(-1.,1.e-6)); }
-//    varMap.at(CLUSHAPE_DiscrT).SetValue(shapes[3]);
     varMap.at(CLUSHAPE_xl20).SetValue(shapes[15]/(2.0*3.50));
   }
   else
@@ -205,7 +205,8 @@ float PIDVariables::get_dEdxSignedLogChi2(PIDParticles::PIDParticle_base* hypoth
   //get expected dE/dx
   float ExpdEdx=BetheBloch(hypothesis);
 
-  float result = _rand->Gaus(-100., 1e-6);
+//  float result = _rand->Gaus(-100., 1e-6);
+  float result = -100.;
   if(dEdx>FLT_MIN) {
     float normdev = (dEdx-ExpdEdx)/(0.05*dEdx);
     result = TMath::Sign(float(2.*TMath::Log(fabs(normdev))+FLT_MIN), normdev);

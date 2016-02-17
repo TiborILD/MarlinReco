@@ -17,6 +17,7 @@
 #include "TMVA/Factory.h"
 //#include "TObjArray.h"
 #include "TCanvas.h"
+#include "TH1F.h"
 
 
 MvaPidTraining aMvaPidTraining;
@@ -25,7 +26,7 @@ MvaPidTraining::MvaPidTraining() :
   Processor("MvaPidTraining"),
   _description("Training of particle ID using MVA"),
   //_rootfile(NULL),
-  _tree(NULL),
+  _tree(NULL), _histoQ(NULL),
   _seenP(0.), _truePDG(0), _isReconstructed(false),
   _signalPDG(0),
   _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0)
@@ -90,6 +91,7 @@ void MvaPidTraining::init() {
   _nEvt = 0;
   _nMCPtot = _nRec = _nTrkCaloMismatch = 0;
 
+  _histoQ = new TH1F("histoQ", "Q statistic; MVA response; Q", 200, -1., 1.);
   _tree = new TTree("varTree","varTree");
 
   for(variable_c_iterator it = _variables.GetMap()->begin();
@@ -233,14 +235,12 @@ void MvaPidTraining::end() {
     factory->AddVariable(vit->second.Name(), vit->second.Description(), vit->second.Unit(), 'F');
   }
   factory->AddVariable("seenP", "Measured momentum", "GeV", 'F');
-  // Do we need these spectators for the cuts?
-//  _factory->AddSpectator("truePDG", "True PDG", "", 'I');
-//  _factory->AddSpectator("isReconstructed", "Boolean true if MC Particle reconstructed", "", 'B');
 
   TCut signalCut("signalCut", Form("truePDG==%d&&isReconstructed", _signalPDG));
   TCut backgroundCut("backgroundCut", Form("(truePDG!=%d)&&isReconstructed", _signalPDG));
 
-/**/  TObjArray* listb = _tree->GetListOfBranches();
+/*
+  TObjArray* listb = _tree->GetListOfBranches();
 
   std::cout << "Branches in the training tree:\n";
 //  for(TObjArray::Iterator_t bit=listb->begin(); bit!=listb->end(); bit++) {
@@ -260,11 +260,10 @@ void MvaPidTraining::end() {
     c->Print(Form("muons_%s.pdf", var));
   }
   delete c; c=NULL;
+*/
 
   factory->SetInputTrees(_tree, signalCut, backgroundCut);
 
-  // Fixme: Is this ok or needs a map of available methods with options
-  // Or should options be steerable?
   factory->BookMethod(_mvaMethod, _mvaMethod, _mvaMethodOptions);
   factory->PrintHelpMessage(_mvaMethod);
 
@@ -272,13 +271,65 @@ void MvaPidTraining::end() {
   factory->TestAllMethods();
   factory->EvaluateAllMethods();
 
+
   // TODO:
   // Output optimal cuts (need a definition of "optimal"), impact of variables etc.
   // Store optimal cuts
 
   // Output messages on mismatched track/calo etc.
 
-  outputFile->Close();
+  // For Q
+//  TFile *qfile = TFile::Open( "testHistoQ.root", "RECREATE" );
+//  std::cout << "Created histoQ.\n";
+  TTree *testTree = NULL;
+  outputFile->GetObject("TestTree", testTree);
+  if(!testTree) {
+    std::cout << "No TestTree in gDirectory. Sorry.\n";
+    outputFile->Close();
+    std::cout << "Closed output file.\n";
 
+  }
+  else {
+    TH1F sigMVA(*_histoQ);
+    sigMVA.SetName("sigMVA"); sigMVA.SetTitle("Signal MVA response; MVA; Count");
+    testTree->Project("sigMVA", _mvaMethod.c_str(), "classID==0");
+    TH1F bkgMVA(*_histoQ);
+    bkgMVA.SetName("bkgMVA"); bkgMVA.SetTitle("Background MVA response; MVA; Count");
+    testTree->Project("bkgMVA", _mvaMethod.c_str(), "classID==1");
+    outputFile->Close();
+    std::cout << "Closed output file.\n";
+    std::cout << "Nulling testTree.\n";
+    testTree = NULL;
+    std::cout << "Nulled testTree.\n";
+
+
+    float nSig = sigMVA.Integral();
+    float nBkg = bkgMVA.Integral();
+    std::cout << "Read TestTree. nSig = " << nSig << "; nBkg = " << nBkg << ".\n";
+
+    float nSigAbove = nSig;
+    float nBkgBelow = 0;
+
+ //   int lastBin = _histoQ->GetNbinsX();
+    for (int ibin=1; ibin<_histoQ->GetNbinsX(); ibin++) {
+/*      float mva = _histoQ->GetBinCenter(ibin);
+      TString sigcut; sigcut.Form("classID==0&&%s>%f", _mvaMethod.c_str(), mva);
+      TString bkgcut; bkgcut.Form("classID==1&&%s<%f", _mvaMethod.c_str(), mva);
+      int nSigAbove = testTree->GetEntries(sigcut.Data());
+      int nBkgBelow = testTree->GetEntries(bkgcut.Data());
+*/
+      nSigAbove -= sigMVA.GetBinContent(ibin);
+      nBkgBelow += bkgMVA.GetBinContent(ibin);
+      float q;
+      if (nBkgBelow > 0) { q = float(nSigAbove*nBkg)/(nBkgBelow*nSig); }
+      else { q = FLT_MAX; }
+      std::cout << "Setting content in bin " << ibin << " to " << q << std::endl;
+      _histoQ->SetBinContent(ibin, q);
+    }
+  }
+
+
+
+//  qfile->Close();
 }
 

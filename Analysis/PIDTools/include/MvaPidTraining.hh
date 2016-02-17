@@ -25,6 +25,8 @@ using PIDParticles::MVAHypothesesMap;
 using PIDParticles::particleType;
 
 class LowMomentumMuPiSeparationPID_BDTG;
+class TTree;
+class TH1F;
 
 
 class MvaPidTraining : public Processor{
@@ -63,6 +65,7 @@ private:
 
 //  TFile* _rootfile;
   TTree* _tree;
+  TH1F* _histoQ;
 
   std::map<variableType, float> _trainingVars;
   PIDVariables _variables;
@@ -81,6 +84,9 @@ private:
   // Counters
   unsigned int _nEvt;
   unsigned int _nMCPtot, _nRec, _nTrkCaloMismatch;
+
+  static const float minMVA, maxMVA;
+  static const int nChanQ;
 };
 
 
