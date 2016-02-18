@@ -54,8 +54,6 @@ protected:
  std::string _trueToReco ;
  std::string _recoToTrue ;
  std::string _mcParticleCollectionName ;
-// std::string _trackColName ;
-// std::string _pandoraPFOs ;
 
 
 
@@ -63,9 +61,7 @@ private:
 
   std::string _description;
 
-//  TFile* _rootfile;
   TTree* _tree;
-  TH1F* _histoQ;
 
   std::map<variableType, float> _trainingVars;
   PIDVariables _variables;
@@ -74,9 +70,8 @@ private:
   bool _isReconstructed;
 
   // Steerables:
-  // MVA method used
   int _signalPDG;
-  std::string _rootFileName;
+  std::string _mvaResponseFileName;
   std::string _mvaMethod;
   std::string _mvaMethodOptions;
   std::string _weightFileName;
@@ -85,8 +80,8 @@ private:
   unsigned int _nEvt;
   unsigned int _nMCPtot, _nRec, _nTrkCaloMismatch;
 
-  static const float minMVA, maxMVA;
-  static const int nChanQ;
+  // Number of channels for the histogram of Q-statistic
+  static const int nChanQ = 1000;
 };
 
 

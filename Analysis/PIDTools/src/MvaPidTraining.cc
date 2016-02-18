@@ -15,7 +15,6 @@
 #include "TFile.h"
 #include "TCut.h"
 #include "TMVA/Factory.h"
-//#include "TObjArray.h"
 #include "TCanvas.h"
 #include "TH1F.h"
 
@@ -25,8 +24,7 @@ MvaPidTraining aMvaPidTraining;
 MvaPidTraining::MvaPidTraining() :
   Processor("MvaPidTraining"),
   _description("Training of particle ID using MVA"),
-  //_rootfile(NULL),
-  _tree(NULL), _histoQ(NULL),
+  _tree(NULL),
   _seenP(0.), _truePDG(0), _isReconstructed(false),
   _signalPDG(0),
   _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0)
@@ -58,11 +56,12 @@ MvaPidTraining::MvaPidTraining() :
             11 );
 
 
-  registerProcessorParameter( "RootFileName" ,
+  registerProcessorParameter( "MVAResponseFileName" ,
             "Root file with MVA response data",
-            _rootFileName,
+            _mvaResponseFileName,
             std::string("MvaPidTraining.response.root") );
-/**/
+
+
   registerProcessorParameter( "MVAMethod" ,
             "MVA method name",
             _mvaMethod,
@@ -91,16 +90,13 @@ void MvaPidTraining::init() {
   _nEvt = 0;
   _nMCPtot = _nRec = _nTrkCaloMismatch = 0;
 
-  _histoQ = new TH1F("histoQ", "Q statistic; MVA response; Q", 200, -1., 1.);
   _tree = new TTree("varTree","varTree");
 
   for(variable_c_iterator it = _variables.GetMap()->begin();
       it != _variables.GetMap()->end();
       it++)
   {
-//    _tree->Branch(it->second.Name(), &sensitiveVars[it->first]);
     _trainingVars.insert( std::pair<variableType, float>(it->first, 0.) );
-//    _tree->Branch(it->second.Name(), it->second.Address());
     _tree->Branch(it->second.Name(), &(_trainingVars.at(it->first)));
   }
 
@@ -224,43 +220,20 @@ void MvaPidTraining::check( LCEvent * evt ) {
 
 void MvaPidTraining::end() {
 
-  TFile* outputFile = TFile::Open( _rootFileName.c_str(), "RECREATE" );
+  TFile* outputFile = TFile::Open( _mvaResponseFileName.c_str(), "RECREATE" );
   TMVA::Factory * factory = new TMVA::Factory(_weightFileName, outputFile,
       "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification");
 
-
-
+  // Add sensitive variables - they are known from the map
   for(variable_c_iterator vit=_variables.GetMap()->begin(); vit!=_variables.GetMap()->end(); vit++)
   {
     factory->AddVariable(vit->second.Name(), vit->second.Description(), vit->second.Unit(), 'F');
   }
   factory->AddVariable("seenP", "Measured momentum", "GeV", 'F');
 
+  // Recognise signal and background from the truePDG - only reconstructed particles.
   TCut signalCut("signalCut", Form("truePDG==%d&&isReconstructed", _signalPDG));
   TCut backgroundCut("backgroundCut", Form("(truePDG!=%d)&&isReconstructed", _signalPDG));
-
-/*
-  TObjArray* listb = _tree->GetListOfBranches();
-
-  std::cout << "Branches in the training tree:\n";
-//  for(TObjArray::Iterator_t bit=listb->begin(); bit!=listb->end(); bit++) {
-  for(int i=0; i<listb->GetEntries(); i++) {
-    std::cout << ((TBranch*)(listb->At(i)))->GetName() << std::endl;
-  }
-
-  TCanvas *c = new TCanvas;
-  c->SetLogy();
-  for(variable_c_iterator vit=_variables.GetMap()->begin(); vit!=_variables.GetMap()->end(); vit++) {
-    const char *var = vit->second.Name();
-    _tree->Draw(var, signalCut);
-    c->Print(Form("signal_%s.pdf", var));
-    _tree->Draw(var, backgroundCut);
-    c->Print(Form("background_%s.pdf", var));
-    _tree->Draw(var, "truePDG==13&&isReconstructed");
-    c->Print(Form("muons_%s.pdf", var));
-  }
-  delete c; c=NULL;
-*/
 
   factory->SetInputTrees(_tree, signalCut, backgroundCut);
 
@@ -272,64 +245,69 @@ void MvaPidTraining::end() {
   factory->EvaluateAllMethods();
 
 
-  // TODO:
-  // Output optimal cuts (need a definition of "optimal"), impact of variables etc.
-  // Store optimal cuts
-
-  // Output messages on mismatched track/calo etc.
-
-  // For Q
-//  TFile *qfile = TFile::Open( "testHistoQ.root", "RECREATE" );
-//  std::cout << "Created histoQ.\n";
+  /*** Create, fill and store the histogram of the Q-statistic ***/
+  streamlog_out(MESSAGE) << "\n===========================================================\n";
+  streamlog_out(MESSAGE) << "\nGenerating and storing the Q-statistic:\n\n";
   TTree *testTree = NULL;
-  outputFile->GetObject("TestTree", testTree);
+  gDirectory->GetObject("TestTree", testTree);
   if(!testTree) {
-    std::cout << "No TestTree in gDirectory. Sorry.\n";
-    outputFile->Close();
-    std::cout << "Closed output file.\n";
-
+    streamlog_out(MESSAGE) << "No TestTree in gDirectory. Sorry, abandoning.\n";
+    return;
   }
-  else {
-    TH1F sigMVA(*_histoQ);
-    sigMVA.SetName("sigMVA"); sigMVA.SetTitle("Signal MVA response; MVA; Count");
-    testTree->Project("sigMVA", _mvaMethod.c_str(), "classID==0");
-    TH1F bkgMVA(*_histoQ);
-    bkgMVA.SetName("bkgMVA"); bkgMVA.SetTitle("Background MVA response; MVA; Count");
-    testTree->Project("bkgMVA", _mvaMethod.c_str(), "classID==1");
-    outputFile->Close();
-    std::cout << "Closed output file.\n";
-    std::cout << "Nulling testTree.\n";
-    testTree = NULL;
-    std::cout << "Nulled testTree.\n";
 
+  TH1F histoQ("histoQ", "Q statistic; MVA response; Q", nChanQ, -1., 1.);
+  histoQ.SetDirectory(0);
 
-    float nSig = sigMVA.Integral();
-    float nBkg = bkgMVA.Integral();
-    std::cout << "Read TestTree. nSig = " << nSig << "; nBkg = " << nBkg << ".\n";
+  streamlog_out(MESSAGE) << "Projecting signal MVA from the test tree.\n";
+  TH1F sigMVA(histoQ);
+  sigMVA.SetName("sigMVA"); sigMVA.SetTitle("Signal MVA response; MVA; Count");
+  testTree->Project("sigMVA", _mvaMethod.c_str(), "classID==0");
 
-    float nSigAbove = nSig;
-    float nBkgBelow = 0;
+  streamlog_out(MESSAGE) << "Projecting background MVA from the test tree.\n";
+  TH1F bkgMVA(histoQ);
+  bkgMVA.SetName("bkgMVA"); bkgMVA.SetTitle("Background MVA response; MVA; Count");
+  testTree->Project("bkgMVA", _mvaMethod.c_str(), "classID==1");
 
- //   int lastBin = _histoQ->GetNbinsX();
-    for (int ibin=1; ibin<_histoQ->GetNbinsX(); ibin++) {
-/*      float mva = _histoQ->GetBinCenter(ibin);
-      TString sigcut; sigcut.Form("classID==0&&%s>%f", _mvaMethod.c_str(), mva);
-      TString bkgcut; bkgcut.Form("classID==1&&%s<%f", _mvaMethod.c_str(), mva);
-      int nSigAbove = testTree->GetEntries(sigcut.Data());
-      int nBkgBelow = testTree->GetEntries(bkgcut.Data());
-*/
-      nSigAbove -= sigMVA.GetBinContent(ibin);
-      nBkgBelow += bkgMVA.GetBinContent(ibin);
-      float q;
-      if (nBkgBelow > 0) { q = float(nSigAbove*nBkg)/(nBkgBelow*nSig); }
-      else { q = FLT_MAX; }
-      std::cout << "Setting content in bin " << ibin << " to " << q << std::endl;
-      _histoQ->SetBinContent(ibin, q);
-    }
+  sigMVA.SetDirectory(0);
+  bkgMVA.SetDirectory(0);
+
+  float nSig = sigMVA.Integral();
+  float nBkg = bkgMVA.Integral();
+  streamlog_out(MESSAGE) << "Done projecting. nSig = " << nSig << "; nBkg = " << nBkg << ".\n";
+
+  float nSigAbove = nSig;
+  float nBkgBelow = 0;
+  float mvaCut = -1.;
+
+  for (int ibin=1; ibin<histoQ.GetNbinsX(); ibin++) {
+    // Above and below refer to the upper edge of the bin
+    nSigAbove -= sigMVA.GetBinContent(ibin);
+    nBkgBelow += bkgMVA.GetBinContent(ibin);
+    float effSig = nSigAbove/nSig;
+    if(effSig>.99) mvaCut = sigMVA.GetBinLowEdge(ibin+1);
+    float q;
+    if (nBkgBelow > 0) { q = effSig*nBkg/nBkgBelow; }
+    else { q = FLT_MAX; }
+    streamlog_out(DEBUG) << "Setting content in bin " << ibin << " to " << q << std::endl;
+    histoQ.SetBinContent(ibin, q);
   }
 
 
+  streamlog_out(MESSAGE) << "MVA cut for signal efficiency > 99% is " << mvaCut << ".\n";
+  TObjString mvaCutString(TString::Format("%7.4f", mvaCut));
 
-//  qfile->Close();
+  TFile qfile(TString::Format("weights/%s_%s.Q.root",
+      _weightFileName.c_str(), _mvaMethod.c_str()), "RECREATE");
+  histoQ.Write();
+  mvaCutString.Write("MVACut");
+
+  streamlog_out(MESSAGE) << "\n===========================================================\n";
+  streamlog_out(MESSAGE) << "\nInfo on the training sample:\n";
+  streamlog_out(MESSAGE) << "Analysed total " << _nMCPtot << " final MC particles.\n";
+  streamlog_out(MESSAGE) << "Found total " << _nRec << " reconstructed PFO object linked to the analysed MC particles.\n";
+  streamlog_out(MESSAGE) << "Reconstructed percentage: " << TMath::Floor(1000.0*_nRec/_nMCPtot +.5)*.1 << "%.\n";
+  streamlog_out(MESSAGE) << "Best cluster and best track found in different PFOs " << _nTrkCaloMismatch << " times ("
+                         << TMath::Floor(1000.0*_nTrkCaloMismatch/_nRec+.5)*.1 << "% of all PFOs).\n";
+
 }
 
