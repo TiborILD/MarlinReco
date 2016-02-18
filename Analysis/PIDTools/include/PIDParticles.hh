@@ -22,6 +22,8 @@
 #include "TMVA/Reader.h"
 #include <map>
 
+#include "TH1F.h"
+
 
 namespace PIDParticles
 {
@@ -46,7 +48,7 @@ public:
   const double * GetBBpars() const { return _BBpars; }
   const char* Name() const {return _name;}
 
-private:
+protected:
   // There is no setter for BBpars - they are set in the constructor and do not change!
   double _BBpars[5];
 
@@ -118,33 +120,44 @@ public:
 
   MVAPIDHypothesis (const char *_name, int _pdg, double _mass, const double* _BBpars, const float mvaCut=0.) :
     PIDParticle_base(_name, _pdg, _mass, _BBpars),
-    _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent"))
+    _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent")),
+    _histoQ(NULL)
   {  }
 
   MVAPIDHypothesis (const PIDParticle_base &base, const float mvaCut=0.) :
     PIDParticle_base(base),
-    _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent"))
+    _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent")),
+    _histoQ(NULL)
   {  }
 
   ~MVAPIDHypothesis() {};
 
-  double GetMVAout() const { return _mva; }
-  double GetQ() const { return _q; }
+  float GetMVAout() const { return _mva; }
+  float GetQ() const { return _q; }
   const float GetMVAcut() const { return _mvaCut; }
 
-  void SetMVAout(double mva) { _mva = mva; }
-  void SetQ(double q) { _q = q; }
 
   void AddMVAVariable( const TString& name, Float_t* ptr)
   { _reader->AddVariable(name, ptr); };
-  void EvaluateMVA(const TString &method) { _mva = _reader->EvaluateMVA(method);};
   TMVA::IMethod* BookMVA(const TString& method, const TString& wfile)
   { return _reader->BookMVA(method, wfile); } ;
+  void Evaluate(const TString &method) {
+    _mva = _reader->EvaluateMVA(method);
+    _q = _histoQ->GetBinContent(_histoQ->FindFixBin(_mva));
+  };
+
+  void SetHistoQ(const TH1F *histoQ)
+  { _histoQ = (TH1F*)(histoQ->Clone("clonedQ")); _histoQ->SetDirectory(0); };
+  void SetMVACut(float mvaCut) { _mvaCut = mvaCut; } ;
+  bool PassesCut() const { return _mva > _mvaCut; } ;
+
+  const char *GetHistoQName() const { return _histoQ->GetName(); };
 
 private:
-  double _mva, _q;
-  const float _mvaCut;
+  float _mva, _q;
+  float _mvaCut;
   TMVA::Reader* _reader;
+  TH1F *_histoQ;
 };
 
 

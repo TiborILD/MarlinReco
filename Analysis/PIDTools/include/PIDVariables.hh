@@ -73,7 +73,7 @@ class PIDVariables {
 public:
   PIDVariables();
   PIDVariables(EVENT::ReconstructedParticle*);
-  ~PIDVariables() { delete particlePars; };
+  ~PIDVariables() { delete particlePars; varMap.clear();};
 
   // WARNING: If editing enum varType, don't forget
   // to update the First-last vars for algorithms (below)!
@@ -120,7 +120,6 @@ public:
   const ParticleMap* GetParticleMap() const { return particlePars; };
   float GetDEdx() const { return dEdx; };
   float GetP() const { return p; };
-//  const float *GetPp() const { return &p; };
 
 
   void Update(EVENT::ReconstructedParticle*);
@@ -129,7 +128,6 @@ public:
 
 protected:
   VarMap varMap;
-//  double values[N_VarTypes]; This doesn't work because the compiler does not know whether varType are contiguous int
 
 private:
   void PopulateMap();

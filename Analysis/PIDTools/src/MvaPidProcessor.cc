@@ -11,6 +11,7 @@
 #include "MvaPidProcessor.hh"
 #include "LowMomentumMuPiSeparationPID_BDTG.hh"
 
+#include "TFile.h"
 
 
 const char *MvaPidProcessor::algoName = "MvaPid";
@@ -49,7 +50,7 @@ MvaPidProcessor::MvaPidProcessor() :
   PIDParticles::ParticleMap* defaultmap = PIDParticles::CreateParticleMap();
   for(PIDParticles::ParticleMap::iterator pit=defaultmap->begin();
                                           pit!=defaultmap->end(); pit++)
-  { weightfiles.push_back(std::string("MvaPid_") + pit->second.Name() + ".weights.xml"); }
+  { weightfiles.push_back(std::string("MvaPid_") + pit->second.Name()); }
 
 
   registerInputCollection( LCIO::RECONSTRUCTEDPARTICLE,
@@ -73,11 +74,6 @@ MvaPidProcessor::MvaPidProcessor() :
             _muPiWeightFileNames,
             mupi_weightfiles );
 
-  registerProcessorParameter( "EnergyBoundaries" ,
-            "Boundaries for energy",
-            _energyBoundary,
-            EVENT::FloatVec(0,1.0e+07));
-
 }
 
 
@@ -91,7 +87,6 @@ void MvaPidProcessor::init() {
 
   // Prepare vectors of processor output parameters for the PIDHandler:
   // MVA output and Q-statistic for each hypothesis
-  // Prepare one TMVA::Reader for each hypothesis
   for (hypotheses_c_iterator it=_hypotheses->begin(); it!=_hypotheses->end(); it++) {
     std::string mvaname(it->second.Name()); mvaname.append("MVAout");
     _pidPars.push_back(0.);
@@ -99,11 +94,6 @@ void MvaPidProcessor::init() {
     std::string qname(it->second.Name()); qname.append("Q");
     _pidPars.push_back(0.);
     _pidParNames.push_back(qname);
-
-/* Moved this to PIDParticles
- *     _readerMap.insert(std::pair<particleType, TMVA::Reader*>
-                                (it->first, new TMVA::Reader("Silent")));
-*/
   }
 
 
@@ -115,16 +105,48 @@ void MvaPidProcessor::init() {
                            it++)
   { // Hope this works...
     _mvaVars.insert(std::pair<const char*, float>(it->second.Name(), 0.));
-    for(hypotheses_iterator ith = _hypotheses->begin(); ith != _hypotheses->end(); ith++)
-      { ith->second.AddMVAVariable(it->second.Name(), &(_mvaVars.at(it->second.Name()))); }
   }
   _mvaVars.insert(std::pair<const char*, float>("p", 0.));
+
   for(hypotheses_iterator ith = _hypotheses->begin(); ith != _hypotheses->end(); ith++)
-    { ith->second.AddMVAVariable("p", &(_mvaVars.at("p"))); }
+  {
+    for (variable_c_iterator it=_variables->GetMap()->begin();
+                             it!=_variables->GetMap()->end();
+                             it++)
+    {
+      ith->second.AddMVAVariable(it->second.Name(), &(_mvaVars.at(it->second.Name())));
+    }
+    ith->second.AddMVAVariable("seenP", &(_mvaVars.at("p")));
+  }
 
   for(hypotheses_iterator ith = _hypotheses->begin(); ith != _hypotheses->end(); ith++) {
     // Dirty? Using particleType as vector index for _weightFileNames
-    ith->second.BookMVA(_mvaMethod, _weightFileNames.at(ith->first));
+    std::string wFileFullName(_weightFileNames.at(ith->first));
+    wFileFullName += ".weights.xml";
+    ith->second.BookMVA(_mvaMethod, wFileFullName);
+    streamlog_out(DEBUG) << "Booked " << _mvaMethod << " with " << wFileFullName.c_str() << std::endl;
+    std::string qFileName(_weightFileNames.at(ith->first));
+    qFileName += ".Q.root";
+    TFile qfile(qFileName.c_str());
+    if (!qfile.IsOpen()) {
+      streamlog_out(ERROR) << "Cannot open Q file " << qFileName.c_str() << std::endl;
+      exit(0);
+    }
+    TH1F *histoQ;
+    qfile.GetObject("histoQ", histoQ);
+    if (!histoQ) {
+      streamlog_out(ERROR) << "Cannot read histoQ from file " << qFileName.c_str() << std::endl;
+      exit(0);
+    }
+    ith->second.SetHistoQ(histoQ);
+
+    TObjString *mvaCutString;
+    qfile.GetObject("MVACut", mvaCutString);
+    if (!mvaCutString) {
+      streamlog_out(ERROR) << "Cannot read MVACut string object from file " << qFileName.c_str() << std::endl;
+      exit(0);
+    }
+    ith->second.SetMVACut(mvaCutString->GetString().Atof());
   }
 
 
@@ -181,6 +203,12 @@ void MvaPidProcessor::processEvent( LCEvent * evt ) {
     Identify(part);
     streamlog_out(DEBUG) << "Done identification." << std::endl;
 
+    _pidPars.clear();
+    for (hypotheses_c_iterator ith=_hypotheses->begin(); ith!=_hypotheses->end(); ith++) {
+      _pidPars.push_back(ith->second.GetMVAout());
+      _pidPars.push_back(ith->second.GetQ());
+    }
+
 
     _pidh->setParticleID(part, _bestHypothesis->first, _bestHypothesis->second.pdg,
                    GetQ(_bestHypothesis), _pidh->getAlgorithmID(algoName), _pidPars);
@@ -203,12 +231,8 @@ void MvaPidProcessor::check( LCEvent * evt ) {
 ***********************************************************/
 void MvaPidProcessor::end() {
   delete _mupiPID; _mupiPID = NULL;
-/*  for(ReaderMap::const_iterator itr = _readerMap.begin(); itr != _readerMap.end(); itr++)
-  { delete itr->second; }
-  _readerMap.clear();
-  */
   delete _variables; _variables = NULL;
-  delete _hypotheses; _hypotheses = NULL;
+  _hypotheses->clear(); delete _hypotheses; _hypotheses = NULL;
 }
 
 
@@ -226,24 +250,43 @@ void MvaPidProcessor::Identify(ReconstructedParticle* particle) {
 
   for(hypotheses_iterator ith=_hypotheses->begin(); ith != _hypotheses->end(); ith++) {
     // Not sure whether it is really necessary to repeatedly fill _mvaVars with the same
-    // values within the hypothesis loop. TMVA::Reader does not promise to not change the
-    // sensitive variables so I am just being cautious.
+    // values within the hypothesis loop. However, TMVA::Reader does not promise to not
+    // change the sensitive variables so I am just being cautious.
     for(variable_c_iterator it=_variables->GetMap()->begin();
                             it != _variables->GetMap()->end();
                             it++)
     {  _mvaVars.at(it->second.Name()) = it->second.Value();  }
 
 //    ith->second.SetMVAout(_readerMap.at(ith->first)->EvaluateMVA(_mvaMethod));
-    ith->second.EvaluateMVA(_mvaMethod);
+    ith->second.Evaluate(TString(_mvaMethod.c_str()));
   }
 
   particleType bestH = PIDParticles::nParticleTypes;
 
-  // TODO: Check which hypotheses pass the cut...
+  // Check which hypotheses pass the cut...
+  std::vector<particleType> passH;
+  for(hypotheses_iterator ith=_hypotheses->begin(); ith != _hypotheses->end(); ith++) {
+    if(ith->second.PassesCut()) passH.push_back(ith->first);
+  }
 
-  // TODO: If only one passes the cut, select it
+  // If neither hypothesis passes, stay undecided
+  // Nothing to do. bestH = PIDParticles::nParticleTypes; does the job
 
-  // TODO: If several pass the cut, calculate Q and select by Q
+  // If only one passes the cut, select it
+  if(passH.size() == 1) {
+    bestH = passH.at(0);
+  }
+
+  // If several pass the cut, select by Q
+  if(passH.size() > 1) {
+    float minQ = FLT_MAX;
+    for(hypotheses_iterator ith=_hypotheses->begin(); ith != _hypotheses->end(); ith++) {
+      if( ith->second.GetQ() < minQ ) {
+        minQ = ith->second.GetQ();
+        bestH = ith->first;
+      }
+    }
+  }
 
   //mu-pi Separation for very low momentum tracks (from 0.2 GeV until 2 GeV)
   // It would be good to also make MuPISeparation that takes (ReconstructedParticleImpl*)

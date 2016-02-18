@@ -57,7 +57,7 @@ private:
   // Fills _pidPars
   void Identify(ReconstructedParticle*);
   // Test statistic for making decision if multiple hypotheses make the MVA cut
-  double GetQ(hypotheses_c_iterator);
+  double GetQ(hypotheses_c_iterator ith) const { return ith->second.GetQ(); } ;
 
   hypotheses_c_iterator _bestHypothesis; // Found by Identify()
 
@@ -90,7 +90,6 @@ private:
 
   // mu-pi separation
   std::vector<std::string> _muPiWeightFileNames; // steerable
-  EVENT::FloatVec _energyBoundary; // built in
   LowMomentumMuPiSeparationPID_BDTG *_mupiPID;
 
   unsigned int _nEvt;
