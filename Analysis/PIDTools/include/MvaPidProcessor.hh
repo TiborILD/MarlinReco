@@ -92,7 +92,9 @@ private:
   std::vector<std::string> _muPiWeightFileNames; // steerable
   LowMomentumMuPiSeparationPID_BDTG *_mupiPID;
 
-  unsigned int _nEvt;
+  unsigned int _nEvt, _nPFO, _nUnidentified, _nDecisionQ;
+  std::map<particleType, unsigned int> _mapNDecisionTot;
+  std::map<particleType, unsigned int> _mapNDecisionQ;
 };
 
 

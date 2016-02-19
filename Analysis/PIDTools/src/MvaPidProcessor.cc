@@ -22,7 +22,8 @@ MvaPidProcessor::MvaPidProcessor() :
   Processor("MvaPidProcessor"),
   _variables(NULL), _hypotheses(NULL),
   _description("Particle ID using MVA"),
-  _pfoCol(NULL), _pidh(NULL), _mupiPID(NULL), _nEvt(0)
+  _pfoCol(NULL), _pidh(NULL), _mupiPID(NULL),
+  _nEvt(0), _nPFO(0), _nUnidentified(0), _nDecisionQ(0)
 {
   // Defaults for lowE mu-pi separation
   std::vector< std::string > mupi_weightfiles;
@@ -103,7 +104,7 @@ void MvaPidProcessor::init() {
   for (variable_c_iterator it=_variables->GetMap()->begin();
                            it!=_variables->GetMap()->end();
                            it++)
-  { // Hope this works...
+  {
     _mvaVars.insert(std::pair<const char*, float>(it->second.Name(), 0.));
   }
   _mvaVars.insert(std::pair<const char*, float>("p", 0.));
@@ -147,6 +148,9 @@ void MvaPidProcessor::init() {
       exit(0);
     }
     ith->second.SetMVACut(mvaCutString->GetString().Atof());
+
+    _mapNDecisionQ.insert(std::pair<particleType, unsigned int>(ith->first, 0));
+    _mapNDecisionTot.insert(std::pair<particleType, unsigned int>(ith->first, 0));
   }
 
 
@@ -210,8 +214,14 @@ void MvaPidProcessor::processEvent( LCEvent * evt ) {
     }
 
 
-    _pidh->setParticleID(part, _bestHypothesis->first, _bestHypothesis->second.pdg,
+    if(_bestHypothesis != _hypotheses->end()) {
+      _pidh->setParticleID(part, _bestHypothesis->first, _bestHypothesis->second.pdg,
                    GetQ(_bestHypothesis), _pidh->getAlgorithmID(algoName), _pidPars);
+    }
+    else {
+      _pidh->setParticleID(part, -1, 0, -1., _pidh->getAlgorithmID(algoName), _pidPars);
+    }
+    _nPFO++;
 
   } // Loop over PFO objects
 
@@ -230,6 +240,19 @@ void MvaPidProcessor::check( LCEvent * evt ) {
 /**********************************************************
 ***********************************************************/
 void MvaPidProcessor::end() {
+
+  streamlog_out(MESSAGE) << "\n===========================================================\n";
+  streamlog_out(MESSAGE) << "\nInfo on PID in this sample:\n";
+  streamlog_out(MESSAGE) << "Analysed total " << _nPFO << " PFOs.\n";
+  streamlog_out(MESSAGE) << "Total " << _nDecisionQ << " (" << TMath::Floor((1000.*_nDecisionQ)/_nPFO + .5)*.1
+      << "%) decided by Q-statistic.\nOf that,\n";
+  for(hypotheses_c_iterator ith=_hypotheses->begin(); ith!=_hypotheses->end(); ith++) {
+    streamlog_out(MESSAGE) << ith->second.Name() << " " << _mapNDecisionQ.at(ith->first)
+        << " times by Q and " << _mapNDecisionTot.at(ith->first) << " total.\n";
+  }
+  streamlog_out(MESSAGE) << "Total " << _nUnidentified << " (" << TMath::Floor((1000.*_nUnidentified)/_nPFO + .5)*.1
+      << "%) remained unidentified.\n";
+
   delete _mupiPID; _mupiPID = NULL;
   delete _variables; _variables = NULL;
   _hypotheses->clear(); delete _hypotheses; _hypotheses = NULL;
@@ -272,9 +295,12 @@ void MvaPidProcessor::Identify(ReconstructedParticle* particle) {
   // If neither hypothesis passes, stay undecided
   // Nothing to do. bestH = PIDParticles::nParticleTypes; does the job
 
+  if(passH.size() == 0) _nUnidentified++;
+
   // If only one passes the cut, select it
   if(passH.size() == 1) {
     bestH = passH.at(0);
+    _mapNDecisionTot.at(bestH)++;
   }
 
   // If several pass the cut, select by Q
@@ -286,7 +312,11 @@ void MvaPidProcessor::Identify(ReconstructedParticle* particle) {
         bestH = ith->first;
       }
     }
+    _nDecisionQ++;
+    _mapNDecisionQ.at(bestH)++;
+    _mapNDecisionTot.at(bestH)++;
   }
+
 
   //mu-pi Separation for very low momentum tracks (from 0.2 GeV until 2 GeV)
   // It would be good to also make MuPISeparation that takes (ReconstructedParticleImpl*)

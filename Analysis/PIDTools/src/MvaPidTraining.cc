@@ -232,8 +232,8 @@ void MvaPidTraining::end() {
   factory->AddVariable("seenP", "Measured momentum", "GeV", 'F');
 
   // Recognise signal and background from the truePDG - only reconstructed particles.
-  TCut signalCut("signalCut", Form("truePDG==%d&&isReconstructed", _signalPDG));
-  TCut backgroundCut("backgroundCut", Form("(truePDG!=%d)&&isReconstructed", _signalPDG));
+  TCut signalCut("signalCut", Form("(abs(truePDG)==%d)&&isReconstructed", _signalPDG));
+  TCut backgroundCut("backgroundCut", Form("(abs(truePDG)!=%d)&&isReconstructed", _signalPDG));
 
   factory->SetInputTrees(_tree, signalCut, backgroundCut);
 
@@ -262,11 +262,13 @@ void MvaPidTraining::end() {
   TH1F sigMVA(histoQ);
   sigMVA.SetName("sigMVA"); sigMVA.SetTitle("Signal MVA response; MVA; Count");
   testTree->Project("sigMVA", _mvaMethod.c_str(), "classID==0");
+  sigMVA.Scale(1./sigMVA.Integral());
 
   streamlog_out(MESSAGE) << "Projecting background MVA from the test tree.\n";
   TH1F bkgMVA(histoQ);
   bkgMVA.SetName("bkgMVA"); bkgMVA.SetTitle("Background MVA response; MVA; Count");
   testTree->Project("bkgMVA", _mvaMethod.c_str(), "classID==1");
+  bkgMVA.Scale(1./bkgMVA.Integral());
 
   sigMVA.SetDirectory(0);
   bkgMVA.SetDirectory(0);

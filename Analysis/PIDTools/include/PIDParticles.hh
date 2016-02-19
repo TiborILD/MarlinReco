@@ -141,9 +141,12 @@ public:
   { _reader->AddVariable(name, ptr); };
   TMVA::IMethod* BookMVA(const TString& method, const TString& wfile)
   { return _reader->BookMVA(method, wfile); } ;
+
   void Evaluate(const TString &method) {
     _mva = _reader->EvaluateMVA(method);
-    _q = _histoQ->GetBinContent(_histoQ->FindFixBin(_mva));
+    int mvaBin = _histoQ->FindFixBin(_mva);
+    if(_mva-_histoQ->GetBinLowEdge(mvaBin) < _histoQ->GetBinWidth(mvaBin)) mvaBin--;
+    _q = _histoQ->GetBinContent(mvaBin);
   };
 
   void SetHistoQ(const TH1F *histoQ)
