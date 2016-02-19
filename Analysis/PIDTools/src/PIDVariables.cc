@@ -43,6 +43,12 @@ PIDVariables::PIDVariables(EVENT::ReconstructedParticle* _particle) {
   Update(_particle);
 }
 
+PIDVariables::~PIDVariables() {
+  delete particlePars;
+  varMap.clear();
+  delete _rand;
+}
+
 void PIDVariables::PopulateMap() {
   const int nBinsCommon = 8;
   double * binsCommon = new double[nBinsCommon+1];
@@ -67,6 +73,7 @@ void PIDVariables::PopulateMap() {
   varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2pion, PIDVariable("dEdxChi2pion", "#chi^{2}_{dE/dx} (#pi)", "", 0, NULL, -50., 50., 100)));
   varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2kaon, PIDVariable("dEdxChi2kaon", "#chi^{2}_{dE/dx} (K)", "", 0, NULL, -50., 50., 100)));
   varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2proton, PIDVariable("dEdxChi2proton", "#chi^{2}_{dE/dx} (proton)", "", 0, NULL, -50., 50., 100)));
+  delete binsCommon;
 }
 
 

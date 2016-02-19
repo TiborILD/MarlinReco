@@ -130,7 +130,7 @@ public:
     _histoQ(NULL)
   {  }
 
-  ~MVAPIDHypothesis() {};
+  ~MVAPIDHypothesis() { /*delete _reader;*/ };
 
   float GetMVAout() const { return _mva; }
   float GetQ() const { return _q; }

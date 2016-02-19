@@ -19,7 +19,7 @@
 class LikelihoodPID{
 public:
   LikelihoodPID(std::string fname, std::vector<float> priors);
-  ~LikelihoodPID() ;
+  ~LikelihoodPID();
    
   // Flag masks for the user to tell which algorithms to use
   static const short MASK_Basic;

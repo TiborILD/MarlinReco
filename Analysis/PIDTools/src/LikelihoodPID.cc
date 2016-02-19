@@ -101,7 +101,6 @@ _algoFlags(MASK_Basic | MASK_dEdx | MASK_Shapes)
 }
 
 LikelihoodPID::~LikelihoodPID(){
-
   fpdf->Close();
   delete particlePars;
 }

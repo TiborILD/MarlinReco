@@ -73,7 +73,7 @@ class PIDVariables {
 public:
   PIDVariables();
   PIDVariables(EVENT::ReconstructedParticle*);
-  ~PIDVariables() { delete particlePars; varMap.clear();};
+  ~PIDVariables();
 
   // WARNING: If editing enum varType, don't forget
   // to update the First-last vars for algorithms (below)!
