@@ -75,6 +75,12 @@ public:
   PIDVariables(EVENT::ReconstructedParticle*);
   ~PIDVariables();
 
+
+  static const short MASK_EmptyClusters  = 1 ;
+  static const short MASK_EmptyTracks   = 1 << 1;
+  static const short MASK_EmptyShapes = 1 << 2;
+  static const short MASK_ZerodEdx   = 1 << 3;
+
   // WARNING: If editing enum varType, don't forget
   // to update the First-last vars for algorithms (below)!
   // And update the PIDVariables default consturctor
@@ -122,8 +128,8 @@ public:
   float GetP() const { return p; };
 
 
-  void Update(EVENT::ReconstructedParticle*);
-  void Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p);
+  int Update(EVENT::ReconstructedParticle*);
+  int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p);
   void SetOutOfRange();
 
 protected:

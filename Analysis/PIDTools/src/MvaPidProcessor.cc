@@ -23,7 +23,9 @@ MvaPidProcessor::MvaPidProcessor() :
   _variables(NULL), _hypotheses(NULL),
   _description("Particle ID using MVA"),
   _pfoCol(NULL), _pidh(NULL), _mupiPID(NULL),
-  _nEvt(0), _nPFO(0), _nUnidentified(0), _nDecisionQ(0)
+  _nEvt(0), _nPFO(0), _nUnidentified(0), _nDecisionQ(0),
+_nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
+_nZerodEdx(0)
 {
   // Defaults for lowE mu-pi separation
   std::vector< std::string > mupi_weightfiles;
@@ -157,7 +159,8 @@ void MvaPidProcessor::init() {
   //mupi separation class
   _mupiPID = new LowMomentumMuPiSeparationPID_BDTG(_muPiWeightFileNames);
 
-  _nEvt = 0;
+  _nEvt = _nPFO = _nUnidentified = _nDecisionQ = 0;
+  _nEmptyClusters = _nEmptyShapes = _nEmptyTracks = _nZerodEdx = 0;
 
   printParameters();
 
@@ -252,6 +255,14 @@ void MvaPidProcessor::end() {
   }
   streamlog_out(MESSAGE) << "Total " << _nUnidentified << " (" << TMath::Floor((1000.*_nUnidentified)/_nPFO + .5)*.1
       << "%) remained unidentified.\n";
+  streamlog_out(MESSAGE) << "Empty clusters " << _nEmptyClusters << " times ("
+                         << TMath::Floor(1000.0*_nEmptyClusters/_nPFO+.5)*.1 << "% of all PFOs).\n";
+  streamlog_out(MESSAGE) << "Empty tracks " << _nEmptyTracks<< " times ("
+                         << TMath::Floor(1000.0*_nEmptyTracks/_nPFO+.5)*.1 << "% of all PFOs).\n";
+  streamlog_out(MESSAGE) << "Empty shapes " << _nEmptyShapes<< " times ("
+                         << TMath::Floor(1000.0*_nEmptyShapes/_nPFO+.5)*.1 << "% of all PFOs).\n";
+  streamlog_out(MESSAGE) << "dEdx < 1e-10 " << _nZerodEdx << " times ("
+                         << TMath::Floor(1000.0*_nZerodEdx/_nPFO+.5)*.1 << "% of all PFOs).\n";
 
   delete _mupiPID; _mupiPID = NULL;
   delete _variables; _variables = NULL;
@@ -269,7 +280,16 @@ void MvaPidProcessor::end() {
 // Checks lowE mu-pi separation, fills _pidPars
 void MvaPidProcessor::Identify(ReconstructedParticle* particle) {
 
-  _variables->Update(particle);
+  short updateres = _variables->Update(particle);
+  if (updateres & PIDVariables::MASK_EmptyClusters) _nEmptyClusters++;
+  if (updateres & PIDVariables::MASK_EmptyTracks) _nEmptyTracks++;
+  if (updateres & PIDVariables::MASK_EmptyShapes) _nEmptyShapes++;
+  if (updateres & PIDVariables::MASK_ZerodEdx) _nZerodEdx++;
+
+  if (updateres & (PIDVariables::MASK_EmptyClusters | PIDVariables::MASK_ZerodEdx) ) {
+    _bestHypothesis = _hypotheses->end();
+    return;
+  }
 
   for(hypotheses_iterator ith=_hypotheses->begin(); ith != _hypotheses->end(); ith++) {
     // Not sure whether it is really necessary to repeatedly fill _mvaVars with the same

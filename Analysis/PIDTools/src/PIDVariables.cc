@@ -10,6 +10,7 @@
  *
  ******************************************************/
 
+
 const PIDVariables::varType PIDVariables::basic_first = PIDVariables::CALO_Total;
 const PIDVariables::varType PIDVariables::calo_beyond = PIDVariables::CALO_MuSys;
 const PIDVariables::varType PIDVariables::basic_beyond = PIDVariables::CLUSHAPE_Chi2;
@@ -77,18 +78,20 @@ void PIDVariables::PopulateMap() {
 }
 
 
-void PIDVariables::Update(EVENT::ReconstructedParticle* _particle) {
+int PIDVariables::Update(EVENT::ReconstructedParticle* _particle) {
   EVENT::ClusterVec cluvec=_particle->getClusters();
   EVENT::TrackVec trk = _particle->getTracks();
   TVector3 p3(_particle->getMomentum());
 
-  Update(cluvec, trk, p3);
+  return Update(cluvec, trk, p3);
 }
 
 
-void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3){
+int PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3){
 
   p = p3.Mag();
+
+  int result = 0;
 
   //get deposit energy and shapes
   EVENT::FloatVec shapes;
@@ -106,6 +109,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   }
   else {
     ecal = hcal = mucal = 0.;
+    result += MASK_EmptyClusters;
   }
 
   // IMPROVE HERE: use directly MCTruthTrackRelation and choose track with larger weight for dE/dx
@@ -115,10 +119,11 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
     }
 */
   if(trax.size() > 0) { dEdx = trax.at(0)->getdEdx(); }
-  else { dEdx = -dEdx_MIP; } // Keep an eye on get_dEdxChi2()...
+  else { dEdx = -dEdx_MIP; result += MASK_EmptyTracks; } // Keep an eye on get_dEdxChi2()...
 
   // Normalise dEdx to MIP
   dEdx /= dEdx_MIP;
+  if (dEdx < 1.e-15) result += MASK_ZerodEdx;
 
   /*************************************/
   /***      Calculate variables      ***/
@@ -160,6 +165,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
     varMap.at(CLUSHAPE_DiscrL).SetValue(_rand->Gaus(-100.,1.e-6));
     varMap.at(CLUSHAPE_DiscrT).SetValue(_rand->Gaus(-1.,1.e-6));
     varMap.at(CLUSHAPE_xl20).SetValue(_rand->Gaus(-1.,1.e-6));
+    result += MASK_EmptyShapes;
   }
 
   // dE/dx
@@ -176,12 +182,7 @@ void PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
   varMap.at(DEDX_Chi2kaon).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::kaon))) );
   varMap.at(DEDX_Chi2proton).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::proton))) );
 
-  /* The following anyway does not correspond to histograms in the standard ILDConfiguration.
-  for(VarMap::iterator it=varMap.find(dEdx_first); it!=varMap.find(N_VarTypes); it++)
-    it->second.SetValue(-0.5*fabs(it->second.Value()));
-    */
-  // This might have been the formula used for the standard histos.
-  //+TMath::Log(sqrt(2.0*TMath::Pi()*0.05*trk->getdEdx()));
+  return result;
 
 }
 

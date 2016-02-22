@@ -95,6 +95,7 @@ private:
   unsigned int _nEvt, _nPFO, _nUnidentified, _nDecisionQ;
   std::map<particleType, unsigned int> _mapNDecisionTot;
   std::map<particleType, unsigned int> _mapNDecisionQ;
+  unsigned int _nEmptyClusters, _nEmptyTracks, _nEmptyShapes, _nZerodEdx;
 };
 
 

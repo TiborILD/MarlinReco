@@ -21,13 +21,18 @@
 
 MvaPidTraining aMvaPidTraining;
 
+
+
+
 MvaPidTraining::MvaPidTraining() :
   Processor("MvaPidTraining"),
   _description("Training of particle ID using MVA"),
   _tree(NULL),
-  _seenP(0.), _truePDG(0), _isReconstructed(false),
+  _seenP(0.), _truePDG(0), _isReconstructed(false), _hasClusters(false), _hasdEdx(false),
   _signalPDG(0),
-  _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0)
+  _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0),
+  _nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
+  _nZerodEdx(0)
 {
   registerInputCollection( LCIO::LCRELATION,
          "MCTruth2RecoLinkCollectionName" ,
@@ -89,6 +94,7 @@ void MvaPidTraining::init() {
 
   _nEvt = 0;
   _nMCPtot = _nRec = _nTrkCaloMismatch = 0;
+  _nEmptyClusters = _nEmptyShapes = _nEmptyTracks = _nZerodEdx = 0;
 
   _tree = new TTree("varTree","varTree");
 
@@ -103,6 +109,8 @@ void MvaPidTraining::init() {
   _tree->Branch("seenP",&_seenP) ;
   _tree->Branch("truePDG",&_truePDG) ;
   _tree->Branch("isReconstructed",&_isReconstructed) ;
+  _tree->Branch("hasClusters",&_hasClusters) ;
+  _tree->Branch("hasdEdx",&_hasdEdx) ;
 
 }
 
@@ -184,7 +192,13 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
       TVector3 p3(rcp->getMomentum());
 
       //  PID sensitive variables  ***/
-      _variables.Update(rcp);
+      short updateres = _variables.Update(rcp);
+      if (updateres & PIDVariables::MASK_EmptyClusters) { _nEmptyClusters++; _hasClusters=false; }
+      else { _hasClusters = true; }
+      if (updateres & PIDVariables::MASK_EmptyTracks) _nEmptyTracks++;
+      if (updateres & PIDVariables::MASK_EmptyShapes) _nEmptyShapes++;
+      if (updateres & PIDVariables::MASK_ZerodEdx) { _nZerodEdx++; _hasdEdx = false; }
+      else { _hasdEdx = true; }
       _seenP = p3.Mag();
 
     } // if reco part
@@ -220,8 +234,8 @@ void MvaPidTraining::check( LCEvent * evt ) {
 
 void MvaPidTraining::end() {
 
-  TFile* outputFile = TFile::Open( _mvaResponseFileName.c_str(), "RECREATE" );
-  TMVA::Factory * factory = new TMVA::Factory(_weightFileName, outputFile,
+//  TFile* outputFile = TFile::Open( _mvaResponseFileName.c_str(), "RECREATE" );
+  TMVA::Factory * factory = new TMVA::Factory(_weightFileName, (TFile*)(gDirectory),
       "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification");
 
   // Add sensitive variables - they are known from the map
@@ -232,8 +246,9 @@ void MvaPidTraining::end() {
   factory->AddVariable("seenP", "Measured momentum", "GeV", 'F');
 
   // Recognise signal and background from the truePDG - only reconstructed particles.
-  TCut signalCut("signalCut", Form("(abs(truePDG)==%d)&&isReconstructed", _signalPDG));
-  TCut backgroundCut("backgroundCut", Form("(abs(truePDG)!=%d)&&isReconstructed", _signalPDG));
+  const char * basicCut = "isReconstructed&&hasClusters&&hasdEdx";
+  TCut signalCut("signalCut", Form("(abs(truePDG)==%d)&&%s", _signalPDG, basicCut));
+  TCut backgroundCut("backgroundCut", Form("(abs(truePDG)!=%d)&&%s", _signalPDG, basicCut));
 
   factory->SetInputTrees(_tree, signalCut, backgroundCut);
 
@@ -279,17 +294,23 @@ void MvaPidTraining::end() {
 
   float nSigAbove = nSig;
   float nBkgBelow = 0;
+  double nSigBelow = 1.e-10; // We will never have 1e10 events in training
+  double nBkgAbove = nBkg;
   float mvaCut = -1.;
 
   for (int ibin=1; ibin<histoQ.GetNbinsX(); ibin++) {
     // Above and below refer to the upper edge of the bin
     nSigAbove -= sigMVA.GetBinContent(ibin);
     nBkgBelow += bkgMVA.GetBinContent(ibin);
+    nSigBelow += sigMVA.GetBinContent(ibin);
+    nBkgAbove -= bkgMVA.GetBinContent(ibin);
     float effSig = nSigAbove/nSig;
     if(effSig>.99) mvaCut = sigMVA.GetBinLowEdge(ibin+1);
     float q;
-    if (nBkgBelow > 0) { q = effSig*nBkg/nBkgBelow; }
-    else { q = FLT_MAX; }
+//    if (nBkgBelow > 0) { q = effSig*nBkg/nBkgBelow; }
+//    else { q = FLT_MAX; }
+    if (nBkgAbove < 1.e6*FLT_MIN) { nBkgAbove = 1.e6*FLT_MIN; }
+    q = - ( TMath::Log(nSigBelow) - TMath::Log(nBkgAbove) );
     streamlog_out(DEBUG) << "Setting content in bin " << ibin << " to " << q << std::endl;
     histoQ.SetBinContent(ibin, q);
   }
@@ -310,6 +331,14 @@ void MvaPidTraining::end() {
   streamlog_out(MESSAGE) << "Reconstructed percentage: " << TMath::Floor(1000.0*_nRec/_nMCPtot +.5)*.1 << "%.\n";
   streamlog_out(MESSAGE) << "Best cluster and best track found in different PFOs " << _nTrkCaloMismatch << " times ("
                          << TMath::Floor(1000.0*_nTrkCaloMismatch/_nRec+.5)*.1 << "% of all PFOs).\n";
+  streamlog_out(MESSAGE) << "Empty clusters " << _nEmptyClusters << " times ("
+                         << TMath::Floor(1000.0*_nEmptyClusters/_nRec+.5)*.1 << "% of all PFOs).\n";
+  streamlog_out(MESSAGE) << "Empty tracks " << _nEmptyTracks<< " times ("
+                         << TMath::Floor(1000.0*_nEmptyTracks/_nRec+.5)*.1 << "% of all PFOs).\n";
+  streamlog_out(MESSAGE) << "Empty shapes " << _nEmptyShapes<< " times ("
+                         << TMath::Floor(1000.0*_nEmptyShapes/_nRec+.5)*.1 << "% of all PFOs).\n";
+  streamlog_out(MESSAGE) << "dEdx < 1e-10 " << _nZerodEdx << " times ("
+                         << TMath::Floor(1000.0*_nZerodEdx/_nRec+.5)*.1 << "% of all PFOs).\n";
 
 }
 
