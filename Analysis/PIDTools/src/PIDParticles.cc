@@ -76,4 +76,15 @@ PIDParticles::MVAHypothesesMap* PIDParticles::CreateMVAPIDMap() {
   return parameterMap;
 }
 
+
+void PIDParticles::MVAPIDHypothesis::Evaluate(const TString &method) {
+  _mva = _reader->EvaluateMVA(method);
+  int mvaBin = _histoQ->FindFixBin(_mva);
+  if(_mva-_histoQ->GetBinLowEdge(mvaBin) < _histoQ->GetBinWidth(mvaBin)) mvaBin--;
+  _q = _histoQ->GetBinContent(mvaBin);
+
+  _sigAbove = _histoSig->Integral(mvaBin, _histoSig->GetNbinsX());
+};
+
+
 /* test */

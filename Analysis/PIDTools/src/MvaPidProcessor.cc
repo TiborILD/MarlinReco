@@ -135,6 +135,7 @@ void MvaPidProcessor::init() {
       streamlog_out(ERROR) << "Cannot open Q file " << qFileName.c_str() << std::endl;
       exit(0);
     }
+
     TH1F *histoQ;
     qfile.GetObject("histoQ", histoQ);
     if (!histoQ) {
@@ -142,6 +143,22 @@ void MvaPidProcessor::init() {
       exit(0);
     }
     ith->second.SetHistoQ(histoQ);
+
+    TH1F *histoSig;
+    qfile.GetObject("sigMVA", histoSig);
+    if (!histoSig) {
+      streamlog_out(ERROR) << "Cannot read sigMVA from file " << qFileName.c_str() << std::endl;
+      exit(0);
+    }
+    ith->second.SetHistoSig(histoSig);
+
+    TH1F *histoBkg;
+    qfile.GetObject("bkgMVA", histoBkg);
+    if (!histoBkg) {
+      streamlog_out(ERROR) << "Cannot read bkgMVA from file " << qFileName.c_str() << std::endl;
+      exit(0);
+    }
+    ith->second.SetHistoBkg(histoBkg);
 
     TObjString *mvaCutString;
     qfile.GetObject("MVACut", mvaCutString);
@@ -153,6 +170,7 @@ void MvaPidProcessor::init() {
 
     _mapNDecisionQ.insert(std::pair<particleType, unsigned int>(ith->first, 0));
     _mapNDecisionTot.insert(std::pair<particleType, unsigned int>(ith->first, 0));
+    _mapNDecisionSigAbove.insert(std::pair<particleType, unsigned int>(ith->first, 0));
   }
 
 
@@ -187,7 +205,7 @@ void MvaPidProcessor::processEvent( LCEvent * evt ) {
     }
 
   _nEvt++;
-  if(_nEvt%1000 == 0)
+  if(_nEvt%100 == 0)
     streamlog_out(MESSAGE) << "Processing event " << _nEvt
            << " (# on file " << evt->getEventNumber() << ")" << std::endl;
 
@@ -253,6 +271,12 @@ void MvaPidProcessor::end() {
     streamlog_out(MESSAGE) << ith->second.Name() << " " << _mapNDecisionQ.at(ith->first)
         << " times by Q and " << _mapNDecisionTot.at(ith->first) << " total.\n";
   }
+  streamlog_out(MESSAGE) << "Total " << _nDecisionSigAbove << " (" << TMath::Floor((1000.*_nDecisionSigAbove)/_nPFO + .5)*.1
+      << "%) decided by minimising S>.\nOf that,\n";
+  for(hypotheses_c_iterator ith=_hypotheses->begin(); ith!=_hypotheses->end(); ith++) {
+    streamlog_out(MESSAGE) << ith->second.Name() << " " << _mapNDecisionSigAbove.at(ith->first)
+        << " times by minimising S> and " << _mapNDecisionTot.at(ith->first) << " total.\n";
+  }
   streamlog_out(MESSAGE) << "Total " << _nUnidentified << " (" << TMath::Floor((1000.*_nUnidentified)/_nPFO + .5)*.1
       << "%) remained unidentified.\n";
   streamlog_out(MESSAGE) << "Empty clusters " << _nEmptyClusters << " times ("
@@ -312,19 +336,8 @@ void MvaPidProcessor::Identify(ReconstructedParticle* particle) {
     if(ith->second.PassesCut()) passH.push_back(ith->first);
   }
 
-  // If neither hypothesis passes, stay undecided
-  // Nothing to do. bestH = PIDParticles::nParticleTypes; does the job
-
-  if(passH.size() == 0) _nUnidentified++;
-
-  // If only one passes the cut, select it
-  if(passH.size() == 1) {
-    bestH = passH.at(0);
-    _mapNDecisionTot.at(bestH)++;
-  }
-
-  // If several pass the cut, select by Q
-  if(passH.size() > 1) {
+  // If neither hypothesis passes the cut, decide by minimising Q=-ln(S</B>)
+  if(passH.size() == 0) {
     float minQ = FLT_MAX;
     for(hypotheses_iterator ith=_hypotheses->begin(); ith != _hypotheses->end(); ith++) {
       if( ith->second.GetQ() < minQ ) {
@@ -334,6 +347,26 @@ void MvaPidProcessor::Identify(ReconstructedParticle* particle) {
     }
     _nDecisionQ++;
     _mapNDecisionQ.at(bestH)++;
+    _mapNDecisionTot.at(bestH)++;
+  }
+
+  // If only one passes the cut, select it
+  if(passH.size() == 1) {
+    bestH = passH.at(0);
+    _mapNDecisionTot.at(bestH)++;
+  }
+
+  // If several pass the cut, select by minimising S>
+  if(passH.size() > 1) {
+    float minSigAbove = FLT_MAX;
+    for(hypotheses_iterator ith=_hypotheses->begin(); ith != _hypotheses->end(); ith++) {
+      if( ith->second.GetSigAbove() < minSigAbove ) {
+        minSigAbove = ith->second.GetSigAbove();
+        bestH = ith->first;
+      }
+    }
+    _nDecisionSigAbove++;
+    _mapNDecisionSigAbove.at(bestH)++;
     _mapNDecisionTot.at(bestH)++;
   }
 

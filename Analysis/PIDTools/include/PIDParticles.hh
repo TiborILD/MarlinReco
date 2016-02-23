@@ -121,19 +121,20 @@ public:
   MVAPIDHypothesis (const char *_name, int _pdg, double _mass, const double* _BBpars, const float mvaCut=0.) :
     PIDParticle_base(_name, _pdg, _mass, _BBpars),
     _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent")),
-    _histoQ(NULL)
+    _histoQ(NULL), _histoSig(NULL), _histoBkg(NULL)
   {  }
 
   MVAPIDHypothesis (const PIDParticle_base &base, const float mvaCut=0.) :
     PIDParticle_base(base),
     _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent")),
-    _histoQ(NULL)
+    _histoQ(NULL), _histoSig(NULL), _histoBkg(NULL)
   {  }
 
   ~MVAPIDHypothesis() { /*delete _reader;*/ };
 
   float GetMVAout() const { return _mva; }
   float GetQ() const { return _q; }
+  float GetSigAbove() const { return _sigAbove; }
   const float GetMVAcut() const { return _mvaCut; }
 
 
@@ -142,25 +143,24 @@ public:
   TMVA::IMethod* BookMVA(const TString& method, const TString& wfile)
   { return _reader->BookMVA(method, wfile); } ;
 
-  void Evaluate(const TString &method) {
-    _mva = _reader->EvaluateMVA(method);
-    int mvaBin = _histoQ->FindFixBin(_mva);
-    if(_mva-_histoQ->GetBinLowEdge(mvaBin) < _histoQ->GetBinWidth(mvaBin)) mvaBin--;
-    _q = _histoQ->GetBinContent(mvaBin);
-  };
+  void Evaluate(const TString &method) ;
 
   void SetHistoQ(const TH1F *histoQ)
   { _histoQ = (TH1F*)(histoQ->Clone("clonedQ")); _histoQ->SetDirectory(0); };
+  void SetHistoSig(const TH1F *histoSig)
+  { _histoSig = (TH1F*)(histoSig->Clone("clonedSig")); _histoSig->SetDirectory(0); };
+  void SetHistoBkg(const TH1F *histoBkg)
+  { _histoBkg = (TH1F*)(histoBkg->Clone("clonedBkg")); _histoBkg->SetDirectory(0); };
   void SetMVACut(float mvaCut) { _mvaCut = mvaCut; } ;
   bool PassesCut() const { return _mva > _mvaCut; } ;
 
-  const char *GetHistoQName() const { return _histoQ->GetName(); };
-
 private:
-  float _mva, _q;
+  float _mva, _q, _sigAbove;
   float _mvaCut;
   TMVA::Reader* _reader;
   TH1F *_histoQ;
+  TH1F *_histoSig;
+  TH1F *_histoBkg;
 };
 
 

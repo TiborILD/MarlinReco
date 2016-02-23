@@ -288,12 +288,12 @@ void MvaPidTraining::end() {
   sigMVA.SetDirectory(0);
   bkgMVA.SetDirectory(0);
 
-  float nSig = sigMVA.Integral();
-  float nBkg = bkgMVA.Integral();
+  double nSig = sigMVA.Integral();
+  double nBkg = bkgMVA.Integral();
   streamlog_out(MESSAGE) << "Done projecting. nSig = " << nSig << "; nBkg = " << nBkg << ".\n";
 
-  float nSigAbove = nSig;
-  float nBkgBelow = 0;
+  double nSigAbove = nSig;
+  double nBkgBelow = 0;
   double nSigBelow = 1.e-10; // We will never have 1e10 events in training
   double nBkgAbove = nBkg;
   float mvaCut = -1.;
@@ -305,12 +305,19 @@ void MvaPidTraining::end() {
     nSigBelow += sigMVA.GetBinContent(ibin);
     nBkgAbove -= bkgMVA.GetBinContent(ibin);
     float effSig = nSigAbove/nSig;
-    if(effSig>.99) mvaCut = sigMVA.GetBinLowEdge(ibin+1);
+    float effBkg = nBkgAbove/nSig;
+//    if(effSig>.99) mvaCut = sigMVA.GetBinLowEdge(ibin+1);
+    if(effBkg>.01) mvaCut = sigMVA.GetBinLowEdge(ibin);
     float q;
+// Outer Q
 //    if (nBkgBelow > 0) { q = effSig*nBkg/nBkgBelow; }
 //    else { q = FLT_MAX; }
+// Inner Q
     if (nBkgAbove < 1.e6*FLT_MIN) { nBkgAbove = 1.e6*FLT_MIN; }
-    q = - ( TMath::Log(nSigBelow) - TMath::Log(nBkgAbove) );
+//    q = - ( TMath::Log(nSigBelow) - TMath::Log(nBkgAbove) );
+    if (nBkgAbove < 1.e6*FLT_MIN) { nBkgAbove = 1.e6*FLT_MIN; }
+    q = - (TMath::Log(effSig) + TMath::Log(nSigAbove) - TMath::Log(nSigAbove+nBkgAbove));
+
     streamlog_out(DEBUG) << "Setting content in bin " << ibin << " to " << q << std::endl;
     histoQ.SetBinContent(ibin, q);
   }
@@ -322,6 +329,8 @@ void MvaPidTraining::end() {
   TFile qfile(TString::Format("weights/%s_%s.Q.root",
       _weightFileName.c_str(), _mvaMethod.c_str()), "RECREATE");
   histoQ.Write();
+  sigMVA.Write();
+  bkgMVA.Write();
   mvaCutString.Write("MVACut");
 
   streamlog_out(MESSAGE) << "\n===========================================================\n";
