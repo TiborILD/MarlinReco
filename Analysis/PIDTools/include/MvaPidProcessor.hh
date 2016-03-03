@@ -20,7 +20,7 @@
 // #include "TMVA/Reader.h"
 
 #include "PIDParticles.hh"
-#include "PIDVariables.hh"
+#include <PIDVariables.hh>
 
 using UTIL::PIDHandler;
 
@@ -45,9 +45,9 @@ public:
   typedef MVAHypothesesMap::iterator hypotheses_iterator;
   typedef MVAHypothesesMap::const_iterator hypotheses_c_iterator;
 
-  typedef PIDVariables::VarMap VariableMap;
-  typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
-  typedef PIDVariables::VarMap::iterator variable_iterator;
+  typedef PIDVariables_base::VarVec VarVec;
+  typedef VarVec::const_iterator variable_c_iterator;
+  typedef VarVec::iterator variable_iterator;
 
   static const char *algoName;
 
@@ -64,7 +64,7 @@ private:
 // Moving this to the hypotheses map
 //  typedef std::map<particleType, TMVA::Reader*> ReaderMap;
 //  ReaderMap _readerMap;
-  PIDVariables *_variables;
+  PIDVariables_MvaPid *_variables;
   // Temporary copy of the variable values for the MVA reader
   // Workaround because the TMVA::Reader::AddVariable(...)
   // does not take const pointers

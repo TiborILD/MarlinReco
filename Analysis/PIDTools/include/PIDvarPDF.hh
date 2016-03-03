@@ -1,4 +1,5 @@
 #ifndef PIDvarPDF_hh
+
 #define PIDvarPDF_hh 1
 
 #include <marlin/Processor.h>
@@ -20,7 +21,7 @@
 #include <TH1F.h>
 #include <TF1.h>
 
-#include "PIDVariables.hh"
+#include <PIDVariables.hh>
 
 using namespace lcio ;
 using namespace marlin ;
@@ -87,9 +88,9 @@ class PIDvarPDF : public Processor {
   typedef PIDParticles::ParticleMap ParticleMap;
   typedef PIDParticles::ParticleMap::iterator particle_iterator;
   typedef PIDParticles::ParticleMap::const_iterator particle_c_iterator;
-  typedef PIDVariables::VarMap variableMap;
-  typedef PIDVariables::VarMap::iterator variable_iterator;
-  typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
+  typedef PIDVariables_base::VarVec VarVec;
+  typedef PIDVariables_base::VarVec::iterator variable_iterator;
+  typedef PIDVariables_base::VarVec::const_iterator variable_c_iterator;
 
 
  protected:
@@ -112,9 +113,9 @@ class PIDvarPDF : public Processor {
   
   int nMCPtot, nRec, nTrkCaloMismatch;
 
-  PIDVariables pidVars;
-  vector<double> sensitiveVars[PIDVariables::N_VarTypes];
-  TH1 *sensVarHistos[PIDParticles::nParticleTypes][PIDVariables::N_VarTypes];
+  PIDVariables_base pidVars;
+  vector<double> sensitiveVars[PIDVariables_base::N_VarTypes];
+  TH1 *sensVarHistos[PIDParticles::nParticleTypes][PIDVariables_base::N_VarTypes];
   TH1F *bbHistos[PIDParticles::nParticleTypes];
   TF1 *bbFunction[PIDParticles::nParticleTypes];
 

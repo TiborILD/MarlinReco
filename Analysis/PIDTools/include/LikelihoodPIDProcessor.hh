@@ -1,4 +1,5 @@
 #ifndef LikelihoodPIDProcessor_hh
+
 #define LikelihoodPIDProcessor_hh 1
 
 #include <string>
@@ -8,7 +9,7 @@
 #include <EVENT/LCCollection.h>
 
 #include "PIDParticles.hh"
-#include "PIDVariables.hh"
+#include <PIDVariables.hh>
 
 using namespace lcio ;
 using namespace marlin ;
@@ -29,8 +30,8 @@ public:
   typedef PIDParticles::LLHypothesesMap ParticleMap;
   typedef PIDParticles::LLHypothesesMap::iterator particle_iterator;
   typedef PIDParticles::LLHypothesesMap::const_iterator particle_c_iterator;
-  typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
-  typedef PIDVariables::VarMap::iterator variable_iterator;
+  typedef PIDVariables_base::VarMap::const_iterator variable_c_iterator;
+  typedef PIDVariables_base::VarMap::iterator variable_iterator;
 
  
 private:

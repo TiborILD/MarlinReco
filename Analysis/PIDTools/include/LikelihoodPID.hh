@@ -1,4 +1,5 @@
 #ifndef LIKELIHOODPID_hh
+
 #define LIKELIHOODPID_hh 1
 
 #include <string>
@@ -12,7 +13,7 @@
 #include "TH1.h"
 
 #include "PIDParticles.hh"
-#include "PIDVariables.hh"
+#include <PIDVariables.hh>
 
 
 
@@ -33,9 +34,9 @@ public:
   typedef PIDParticles::LLHypothesesMap HypothesesMap;
   typedef PIDParticles::LLHypothesesMap::iterator particle_iterator;
   typedef PIDParticles::LLHypothesesMap::const_iterator particle_c_iterator;
-  typedef PIDVariables::varType varType;
-  typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
-  typedef PIDVariables::VarMap::iterator variable_iterator;
+  typedef PIDVariables_base::VarVec VarVec;
+  typedef VarVec::const_iterator variable_c_iterator;
+  typedef VarVec::iterator variable_iterator;
 
   Int_t Classification(IMPL::ReconstructedParticleImpl*);
   Int_t Classification();
@@ -83,13 +84,13 @@ protected:
 
 //  Double_t par[5][5];
   TFile* fpdf;
-  TH1* pdf[PIDParticles::nParticleTypes][PIDVariables::N_VarTypes];
+  TH1* pdf[PIDParticles::nParticleTypes][PIDVariables_base::N_VarTypes];
 
   // particle properties
   HypothesesMap *particlePars;
   particle_c_iterator bestParticle;
 
-  PIDVariables variables;
+  PIDVariables_base variables;
 
   //for shower profile
   EVENT::FloatVec shapes;

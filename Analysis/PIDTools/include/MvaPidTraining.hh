@@ -8,6 +8,7 @@
  */
 
 #ifndef MVAPIDTRAINING_HH_
+
 #define MVAPIDTRAINING_HH_
 
 
@@ -16,7 +17,7 @@
 
 
 #include "PIDParticles.hh"
-#include "PIDVariables.hh"
+#include <PIDVariables.hh>
 
 using namespace lcio ;
 using namespace marlin ;
@@ -42,10 +43,9 @@ public:
   typedef MVAHypothesesMap::iterator hypotheses_iterator;
   typedef MVAHypothesesMap::const_iterator hypotheses_c_iterator;
 
-  typedef PIDVariables::varType variableType;
-  typedef PIDVariables::VarMap VariableMap;
-  typedef PIDVariables::VarMap::const_iterator variable_c_iterator;
-  typedef PIDVariables::VarMap::iterator variable_iterator;
+  typedef PIDVariables_base::VarVec VarVec;
+  typedef PIDVariables_base::VarVec::const_iterator variable_c_iterator;
+  typedef PIDVariables_base::VarVec::iterator variable_iterator;
 
 protected:
 
@@ -63,11 +63,11 @@ private:
 
   TTree* _tree;
 
-  std::map<variableType, float> _trainingVars;
-  PIDVariables _variables;
+  FloatVec _trainingVars;
+  PIDVariables_MvaPid _variables;
   float _seenP;
   int _truePDG;
-  bool _isReconstructed, _hasClusters, _hasdEdx;
+  bool _isReconstructed, _hasClusters, _hasShapes, _hasdEdx;
 
   // Steerables:
   int _signalPDG;

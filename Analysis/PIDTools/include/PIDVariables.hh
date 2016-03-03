@@ -20,134 +20,220 @@
 
 #include "TVector3.h"
 #include "TString.h"
+#include <LCIOSTLTypes.h>
 #include "EVENT/Cluster.h"
 #include "EVENT/Track.h"
 #include "EVENT/ReconstructedParticle.h"
 
 #include "PIDParticles.hh"
 
-class TRandom3;
+using EVENT::FloatVec;
 
-class PIDVariable {
+
+/*****************************************************************
+ *
+ * Individual variables. Base class first, then specific
+ *
+ ****************************************************************/
+
+class PIDVariable_base {
 public:
-  PIDVariable(const char*name, const char *description, const char *unit,
-      const int nBinsP, const double *pBins,
-      const double loLim, const double hiLim, const int nBinsV=50) :
-    value(0.), _name(name), _description(description), _unit(unit),
-    _nBinsV(nBinsV), _loLim(loLim), _hiLim(hiLim),
-    _nBinsP(nBinsP), _pBins(pBins) {};
-  ~PIDVariable() {};
+  PIDVariable_base(const char*name, const char *description, const char *unit) :
+    _value(0.), _name(name), _description(description), _unit(unit)
+    {};
+  virtual ~PIDVariable_base() {};
 
-  float Value() const { return value; };
+  // Binary masks for interpreting the return code
+  // of the Update() function
+  static const short MASK_EmptyClusters   = 1 ;
+  static const short MASK_EmptyTracks     = 1 << 1;
+  static const short MASK_EmptyShapes     = 1 << 2;
+  static const short MASK_ZerodEdx        = 1 << 3;
+  static const short MASK_InvalidMomentum = 1 << 4;
+
+
+  float Value() const { return _value; };
   const char *Name() const { return _name; };
-  const float *Address() const { return &value; };
+  const float *Address() const { return &_value; };
 
   const char *AxisTitle() const { if(_unit[0] == '\0') return _description;
                                   else return Form("%s (%s)", _description, _unit); };
   const char *Description() const { return _description; };
   const char *Unit() const { return _unit; } ;
-  int NBinsV() const { return _nBinsV; };
-  double LoLim() const { return _loLim; };
-  double HiLim() const { return _hiLim; };
-  int NBinsP() const { return _nBinsP; };
-  const double *PBins() const { return _pBins; };
 
-  void SetValue(double val) { value = val; };
+  virtual int Update(EVENT::ReconstructedParticle*);
+  virtual int Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3) = 0;
+
+  virtual void SetOutOfRange() = 0;
+
+  static double BetheBloch(const PIDParticles::PIDParticle_base* hypothesis, const float p);
 
 protected:
-  float value;
+  float _value;
   const char *_name;
   const char *_description;
   const char *_unit;
-  // No. of bins and limits of the variable distribution histogram
-  const int _nBinsV;
-  const double _loLim, _hiLim;
-  // Slicing in reconstructed momentum
-  const int _nBinsP;
-  const double *_pBins;
 };
 
 
-class PIDVariables {
+
+class PID_CaloTotal : public PIDVariable_base
+{
+public:
+  PID_CaloTotal();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.; }
+
+  static const float pCut; // Minimum permissible tracker momentum
+};
+
+class PID_CaloEFrac: public PIDVariable_base
+{
+public:
+  PID_CaloEFrac();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.; }
+
+  static const float caloCut;
+};
+
+class PID_CaloMuSys : public PIDVariable_base
+{
+public:
+  PID_CaloMuSys();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.; }
+};
+
+class PID_CluShapeChi2: public PIDVariable_base
+{
+public:
+  PID_CluShapeChi2();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.; }
+};
+
+class PID_CluShapeLDiscr: public PIDVariable_base
+{
+public:
+  PID_CluShapeLDiscr();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -FLT_MAX; }
+};
+
+class PID_CluShapeTDiscr: public PIDVariable_base
+{
+public:
+  PID_CluShapeTDiscr();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.; }
+};
+
+class PID_CluShapeXl20: public PIDVariable_base
+{
+public:
+  PID_CluShapeXl20();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.; }
+};
+
+
+class PID_dEdxChi2: public PIDVariable_base
+{
+public:
+  PID_dEdxChi2(const PID_dEdxChi2&);
+  PID_dEdxChi2(const PIDParticles::PIDParticle_base* hypothesis, const float dEdx_MIP=1.35e-7);
+  ~PID_dEdxChi2();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.e5; }
+
+//private:
+  const PIDParticles::PIDParticle_base* _hypothesis;
+  const double _dEdx_MIP;
+};
+
+class PID_dEdxLogChi2: public PIDVariable_base
+{
+public:
+  PID_dEdxLogChi2(const PID_dEdxLogChi2&);
+  PID_dEdxLogChi2(const PIDParticles::PIDParticle_base* hypothesis, const float dEdx_MIP=1.35e-7);
+  ~PID_dEdxLogChi2();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.e3; }
+
+//private:
+  const PIDParticles::PIDParticle_base* _hypothesis;
+  const double _dEdx_MIP;
+};
+
+
+
+/*****************************************************************
+ *
+ * Sets of variables. Base class first, then variations
+ *
+ ****************************************************************/
+
+
+class PIDVariables_base {
 
 public:
-  PIDVariables();
-  PIDVariables(EVENT::ReconstructedParticle*);
-  ~PIDVariables();
+  PIDVariables_base();
+  PIDVariables_base(EVENT::ReconstructedParticle*);
+  virtual ~PIDVariables_base();
 
-
-  static const short MASK_EmptyClusters  = 1 ;
-  static const short MASK_EmptyTracks   = 1 << 1;
-  static const short MASK_EmptyShapes = 1 << 2;
-  static const short MASK_ZerodEdx   = 1 << 3;
-
-  // WARNING: If editing enum varType, don't forget
-  // to update the First-last vars for algorithms (below)!
-  // And update the PIDVariables default consturctor
-  enum varType {
-    CALO_Total,
-    CALO_EFrac,
-    CALO_MuSys,
-    CLUSHAPE_Chi2,
-    CLUSHAPE_DiscrL,
-    CLUSHAPE_DiscrT,
-    CLUSHAPE_xl20,
-    DEDX_Chi2electron,
-    DEDX_Chi2muon,
-    DEDX_Chi2pion,
-    DEDX_Chi2kaon,
-    DEDX_Chi2proton,
-    N_VarTypes
-  };
-
-  typedef std::map<varType, PIDVariable> VarMap;
+  typedef std::vector<PIDVariable_base*> VarVec;
   typedef PIDParticles::ParticleMap ParticleMap;
 
-  // First and last variables used in different PID algorithms
-  static const varType basic_first;
-  static const varType calo_beyond;
-  static const varType basic_beyond;
-  static const varType clushape_first;
-  static const varType clushape_beyond;
-  static const varType dEdx_first;
-  static const varType dEdx_beyond;
-
-  // Various cuts used when calculating the variables
-  static const double ptCut; // Avoid division by zero for "CaloTotal"
-  static const double caloCut;
-  static const double muSysCut;
-  static const double muSysPCut;
-
-  static const double dEdx_MIP;
-
-
-  float GetValue(varType i) const { return varMap.at(i).Value(); };
-  const VarMap* GetMap() const { return &varMap; };
-  const ParticleMap* GetParticleMap() const { return particlePars; };
-  float GetDEdx() const { return dEdx; };
-  float GetP() const { return p; };
-
+  const VarVec* GetVariables() const { return &_varVec; };
+  float GetP() const { return _p; }
 
   int Update(EVENT::ReconstructedParticle*);
   int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p);
   void SetOutOfRange();
 
+
 protected:
-  VarMap varMap;
+  VarVec _varVec;
+  float _p;
+  virtual void Populate() = 0;
+};
 
-private:
-  void PopulateMap();
-  float dEdx, p;
 
-  float get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const;
-  float get_dEdxSignedLogChi2(PIDParticles::PIDParticle_base* hypothesis) const;
-  double BetheBloch(PIDParticles::PIDParticle_base* hypothesis) const;
+/***  PIDVariables for the LikelihoodPIDProcessor ***/
 
-  // This class maintains its own separate particle parameter map with
-  // just the basic properties
-  ParticleMap *particlePars;
+class PIDVariables_LLPID : public PIDVariables_base
+{
+public:
+  PIDVariables_LLPID();
+  PIDVariables_LLPID(EVENT::ReconstructedParticle*);
+  virtual ~PIDVariables_LLPID();
 
-  TRandom3 *_rand;
+protected:
+  virtual void Populate();
+};
+
+
+/***  PIDVariables for the MvaPidProcessor ***/
+
+class PIDVariables_MvaPid : public PIDVariables_base
+{
+public:
+  PIDVariables_MvaPid();
+  PIDVariables_MvaPid(EVENT::ReconstructedParticle*);
+  virtual ~PIDVariables_MvaPid();
+
+  virtual int Update(EVENT::ReconstructedParticle*);
+
+  FloatVec* GetMvaVariables() { return &_mvaVars; }
+
+protected:
+  virtual void Populate();
+
+  void RefreshMvaVars();
+  // Copy of all variables for the TMVA::Reader and TMVA::Factory
+  // As they do not accept const pointers
+  FloatVec _mvaVars;
 };
 
 

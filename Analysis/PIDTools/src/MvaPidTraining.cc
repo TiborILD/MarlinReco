@@ -22,13 +22,12 @@
 MvaPidTraining aMvaPidTraining;
 
 
-
-
 MvaPidTraining::MvaPidTraining() :
   Processor("MvaPidTraining"),
   _description("Training of particle ID using MVA"),
   _tree(NULL),
-  _seenP(0.), _truePDG(0), _isReconstructed(false), _hasClusters(false), _hasdEdx(false),
+  _seenP(0.), _truePDG(0), _isReconstructed(false),
+  _hasClusters(false), _hasShapes(false), _hasdEdx(false),
   _signalPDG(0),
   _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0),
   _nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
@@ -98,18 +97,16 @@ void MvaPidTraining::init() {
 
   _tree = new TTree("varTree","varTree");
 
-  for(variable_c_iterator it = _variables.GetMap()->begin();
-      it != _variables.GetMap()->end();
-      it++)
+  for(unsigned int i = 0; i < _variables.GetVariables()->size(); i++)
   {
-    _trainingVars.insert( std::pair<variableType, float>(it->first, 0.) );
-    _tree->Branch(it->second.Name(), &(_trainingVars.at(it->first)));
+    _tree->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)));
   }
 
   _tree->Branch("seenP",&_seenP) ;
   _tree->Branch("truePDG",&_truePDG) ;
   _tree->Branch("isReconstructed",&_isReconstructed) ;
   _tree->Branch("hasClusters",&_hasClusters) ;
+  _tree->Branch("hasShapes",&_hasShapes) ;
   _tree->Branch("hasdEdx",&_hasdEdx) ;
 
 }
@@ -193,11 +190,12 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
 
       //  PID sensitive variables  ***/
       short updateres = _variables.Update(rcp);
-      if (updateres & PIDVariables::MASK_EmptyClusters) { _nEmptyClusters++; _hasClusters=false; }
+      if (updateres & PIDVariable_base::MASK_EmptyClusters) { _nEmptyClusters++; _hasClusters=false; }
       else { _hasClusters = true; }
-      if (updateres & PIDVariables::MASK_EmptyTracks) _nEmptyTracks++;
-      if (updateres & PIDVariables::MASK_EmptyShapes) _nEmptyShapes++;
-      if (updateres & PIDVariables::MASK_ZerodEdx) { _nZerodEdx++; _hasdEdx = false; }
+      if (updateres & PIDVariable_base::MASK_EmptyTracks) _nEmptyTracks++;
+      if (updateres & PIDVariable_base::MASK_EmptyShapes) { _nEmptyShapes++; _hasShapes=false; }
+      else { _hasShapes = true; }
+      if (updateres & PIDVariable_base::MASK_ZerodEdx) { _nZerodEdx++; _hasdEdx = false; }
       else { _hasdEdx = true; }
       _seenP = p3.Mag();
 
@@ -211,8 +209,6 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
 
     }
 
-    for(std::map<variableType, float>::iterator vit=_trainingVars.begin(); vit!=_trainingVars.end(); vit++)
-    { vit->second = _variables.GetValue(vit->first); }
     _tree->Fill();
 
   }  // loop over MCPs
@@ -234,26 +230,34 @@ void MvaPidTraining::check( LCEvent * evt ) {
 
 void MvaPidTraining::end() {
 
+
+//  _tree->Write();
+//  exit(0);
+
 //  TFile* outputFile = TFile::Open( _mvaResponseFileName.c_str(), "RECREATE" );
   TMVA::Factory * factory = new TMVA::Factory(_weightFileName, (TFile*)(gDirectory),
       "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification");
 
   // Add sensitive variables - they are known from the map
-  for(variable_c_iterator vit=_variables.GetMap()->begin(); vit!=_variables.GetMap()->end(); vit++)
+  for(variable_c_iterator vit=_variables.GetVariables()->begin();
+      vit!=_variables.GetVariables()->end(); vit++)
   {
-    factory->AddVariable(vit->second.Name(), vit->second.Description(), vit->second.Unit(), 'F');
+//    std::cout << "Adding variable:\nExpression: " << (*vit)->Name() << "; title: "
+//              << (*vit)->Description() << "; Unit: " << (*vit)->Unit() << std::endl;
+    factory->AddVariable((*vit)->Name(), (*vit)->Description(), (*vit)->Unit(), 'F');
   }
-  factory->AddVariable("seenP", "Measured momentum", "GeV", 'F');
+//  exit(0);
+  factory->AddSpectator("seenP", "Measured momentum", "GeV", 'F');
 
   // Recognise signal and background from the truePDG - only reconstructed particles.
-  const char * basicCut = "isReconstructed&&hasClusters&&hasdEdx";
+  const char * basicCut = "isReconstructed&&hasClusters&&hasShapes&&hasdEdx";
   TCut signalCut("signalCut", Form("(abs(truePDG)==%d)&&%s", _signalPDG, basicCut));
   TCut backgroundCut("backgroundCut", Form("(abs(truePDG)!=%d)&&%s", _signalPDG, basicCut));
 
   factory->SetInputTrees(_tree, signalCut, backgroundCut);
 
   factory->BookMethod(_mvaMethod, _mvaMethod, _mvaMethodOptions);
-  factory->PrintHelpMessage(_mvaMethod);
+//  factory->PrintHelpMessage(_mvaMethod);
 
   factory->TrainAllMethods();
   factory->TestAllMethods();

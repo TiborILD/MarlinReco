@@ -84,7 +84,7 @@ void PIDParticles::MVAPIDHypothesis::Evaluate(const TString &method) {
   _q = _histoQ->GetBinContent(mvaBin);
 
   _sigAbove = _histoSig->Integral(mvaBin, _histoSig->GetNbinsX());
-};
+}
 
 
 /* test */

@@ -1,84 +1,329 @@
-#include "PIDVariables.hh"
-//#include "PIDParticles.hh"
-#include "LikelihoodPID.hh"
+#include <PIDVariables.hh>
 
 #include "TRandom3.h"
 
+
 /*******************************************************
  *
- *   Implementation of the PIDVariables class
+ *   Implementation of PIDVariable_base and its derived classes
+ *   Only the Update(...) methods must be redefined
+ *
+ ******************************************************/
+
+int PIDVariable_base::Update(EVENT::ReconstructedParticle* particle)
+{
+  EVENT::ClusterVec cluvec=particle->getClusters();
+  EVENT::TrackVec trk = particle->getTracks();
+  TVector3 p3(particle->getMomentum());
+
+  return Update(cluvec, trk, p3);
+}
+
+double PIDVariable_base::BetheBloch(const PIDParticles::PIDParticle_base* hypothesis, const float p) {
+
+  float bg=p/hypothesis->mass;
+  float b=sqrt(bg*bg/(1.0+bg*bg));
+  //Double_t g=bg/b;
+  float tmax=hypothesis->GetBBpars()[2]*TMath::Power(bg,2.0);   ///(1.0+pars[3]*g+pars[4]);
+
+  return (0.5*hypothesis->GetBBpars()[0]*TMath::Log(hypothesis->GetBBpars()[1]*TMath::Power(bg,2.0)*tmax)
+          - hypothesis->GetBBpars()[3]*b*b - hypothesis->GetBBpars()[4]*bg/2.0)/(b*b);
+}
+
+
+/***   (ECAL+HCAL)/p   ***/
+
+// 1/10 of the minimum reconstructible pT at ILD
+const float PID_CaloTotal::pCut = .01;
+
+PID_CaloTotal::PID_CaloTotal() :
+    PIDVariable_base("CaloTotal", "(ECAL+HCAL)/p", "")
+{}
+
+int PID_CaloTotal::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  float p = p3.Mag();
+  if(p < pCut) {
+    SetOutOfRange();
+    return MASK_InvalidMomentum;
+  }
+
+  float ecal=0., hcal=0.;
+  if(cluvec.size()>0){
+    for(unsigned int i=0; i<cluvec.size(); i++){
+      FloatVec sde = cluvec[i]->getSubdetectorEnergies();
+      ecal += sde[0];
+      hcal += sde[1];
+    }
+    _value = (ecal +hcal) / p;
+    return 0;
+  }
+  else {
+    _value = 0.;
+    return MASK_EmptyClusters;
+  }
+}
+
+
+/***   ECAL/(ECAL+HCAL)   ***/
+
+const float PID_CaloEFrac::caloCut = 0.001;
+
+PID_CaloEFrac::PID_CaloEFrac() :
+    PIDVariable_base("CaloEFrac", "ECAL/(ECAL+HCAL)", "")
+{}
+
+int PID_CaloEFrac::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  float ecal=0., hcal=0.;
+  if(cluvec.size()>0){
+    for(unsigned int i=0; i<cluvec.size(); i++){
+      FloatVec sde = cluvec[i]->getSubdetectorEnergies();
+      ecal += sde[0];
+      hcal += sde[1];
+    }
+
+    if ( ecal+hcal < caloCut ) {
+      SetOutOfRange();
+      return 0;
+    }
+    else {
+      _value = ecal/(ecal+hcal) ;
+      return 0;
+    }
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+}
+
+
+/***   Muon System deposit   ***/
+
+PID_CaloMuSys::PID_CaloMuSys() :
+    PIDVariable_base("CaloEFrac", "E_{#mu system}", "GeV")
+{}
+
+int PID_CaloMuSys::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  float mucal=0.;
+  if(cluvec.size()>0){
+    for(unsigned int i=0; i<cluvec.size(); i++){
+      FloatVec sde = cluvec[i]->getSubdetectorEnergies();
+      mucal += sde[2];
+    }
+    _value = mucal;
+    return 0;
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+}
+
+
+/***   Cluster shapes Masakazu   ***/
+
+PID_CluShapeChi2::PID_CluShapeChi2() :
+    PIDVariable_base("CluShapeChi2", "Cluster shape #chi^{2}", "")
+{}
+
+int PID_CluShapeChi2::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  if (cluvec.size() < 1) {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+
+  FloatVec shapes=cluvec[0]->getShape();
+  if(shapes.size()!=0){
+    _value = shapes[0];
+    return 0;
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyShapes;
+  }
+}
+
+PID_CluShapeLDiscr::PID_CluShapeLDiscr() :
+    PIDVariable_base("DiscrepancyL", "d_{Shower max} / d_{EM shower max}", "")
+{}
+
+int PID_CluShapeLDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  if (cluvec.size() < 1) {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+
+  FloatVec shapes=cluvec[0]->getShape();
+  if(shapes.size()!=0){
+    _value = shapes[5];
+    return 0;
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyShapes;
+  }
+}
+
+PID_CluShapeTDiscr::PID_CluShapeTDiscr() :
+    PIDVariable_base("DiscrepancyT", "Absorption length", "R_{m}")
+{}
+
+int PID_CluShapeTDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  if (cluvec.size() < 1) {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+
+  FloatVec shapes=cluvec[0]->getShape();
+  if(shapes.size()!=0){
+    _value = shapes[3]/shapes[6];
+    return 0;
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyShapes;
+  }
+}
+
+PID_CluShapeXl20::PID_CluShapeXl20() :
+    PIDVariable_base("Xl20", "xl20", "?")
+{}
+
+int PID_CluShapeXl20::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  if (cluvec.size() < 1) {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+
+  FloatVec shapes=cluvec[0]->getShape();
+  if(shapes.size()!=0){
+    _value = shapes[15]/(2.0*3.50);
+    return 0;
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyShapes;
+  }
+}
+
+
+/***   dE/dx - Chi2 and Log(Chi2)   ***/
+
+PID_dEdxChi2::PID_dEdxChi2(const PID_dEdxChi2& ref) :
+    PIDVariable_base(ref.Name(), ref.Description(), ref.Unit()),
+    _hypothesis(ref._hypothesis), _dEdx_MIP(ref._dEdx_MIP)
+    {}
+
+PID_dEdxChi2::PID_dEdxChi2(const PIDParticles::PIDParticle_base* hypothesis, const float dEdx_MIP) :
+    PIDVariable_base(TString::Format("dEdx_chi2_%s", hypothesis->Name()).Data(),
+        TString::Format("#chi2_{dE/dx %s}", hypothesis->Name()).Data(), ""),
+        _hypothesis(hypothesis), _dEdx_MIP(dEdx_MIP)
+{}
+
+PID_dEdxChi2::~PID_dEdxChi2()
+{
+  delete _hypothesis;
+}
+
+int PID_dEdxChi2::Update(const EVENT::ClusterVec cluvec,
+    const EVENT::TrackVec trax, const TVector3 p3)
+{
+  int result = 0;
+  float ExpdEdx = BetheBloch(_hypothesis, p3.Mag());
+  float dEdx;
+  if(trax.size() > 0) { dEdx = trax.at(0)->getdEdx(); }
+  else { dEdx = -_dEdx_MIP; result |= MASK_EmptyTracks; } // Keep an eye on get_dEdxChi2()...
+
+  // Normalise dEdx to MIP
+  dEdx /= _dEdx_MIP;
+
+  if(dEdx>1.e-15) {
+    //get chi2!!(so far 5% error assumed. conservative)
+    double normdev = (dEdx-ExpdEdx)/(0.05*dEdx);
+    _value = TMath::Sign(TMath::Power(normdev, 2), normdev); // Signed chi2
+  }
+  else {
+    _value = -FLT_MAX;
+    result |= MASK_ZerodEdx;
+  }
+
+  return result;
+
+}
+
+PID_dEdxLogChi2::PID_dEdxLogChi2(const PID_dEdxLogChi2 &ref) :
+    PIDVariable_base(ref.Name(), ref.Description(), ref.Unit()),
+    _hypothesis(ref._hypothesis), _dEdx_MIP(ref._dEdx_MIP)
+    {}
+
+PID_dEdxLogChi2::PID_dEdxLogChi2(const PIDParticles::PIDParticle_base* hypothesis, const float dEdx_MIP) :
+    PIDVariable_base(Form("dEdx_LogChi2_%s", hypothesis->Name()),
+        Form("Log(#chi2_{dE/dx %s})", hypothesis->Name()), ""),
+        _hypothesis(hypothesis), _dEdx_MIP(dEdx_MIP)
+{/*std::cout << _name << "; " << _description << "; " << _unit << std::endl;*/}
+
+PID_dEdxLogChi2::~PID_dEdxLogChi2()
+{
+  delete _hypothesis;
+}
+
+int PID_dEdxLogChi2::Update(const EVENT::ClusterVec cluvec,
+    const EVENT::TrackVec trax, const TVector3 p3)
+{
+  int result = 0;
+  float ExpdEdx = BetheBloch(_hypothesis, p3.Mag());
+  float dEdx;
+  if(trax.size() > 0) { dEdx = trax.at(0)->getdEdx(); }
+  else { dEdx = -_dEdx_MIP; result |= MASK_EmptyTracks; } // Keep an eye on get_dEdxChi2()...
+
+  // Normalise dEdx to MIP
+  dEdx /= _dEdx_MIP;
+
+  if(dEdx>1.e-15) {
+    //get chi2!!(so far 5% error assumed. conservative)
+    float normdev = (dEdx-ExpdEdx)/(0.05*dEdx);
+    _value = TMath::Sign(float( 2.*TMath::Log(fabs(normdev)+FLT_MIN) ), normdev);
+  }
+  else {
+    _value = -FLT_MAX;
+    result |= MASK_ZerodEdx;
+  }
+
+  return result;
+
+}
+
+
+/*******************************************************
+ *
+ *   Implementation of the PIDVariables base and derived
+ *   classes
  *
  ******************************************************/
 
 
-const PIDVariables::varType PIDVariables::basic_first = PIDVariables::CALO_Total;
-const PIDVariables::varType PIDVariables::calo_beyond = PIDVariables::CALO_MuSys;
-const PIDVariables::varType PIDVariables::basic_beyond = PIDVariables::CLUSHAPE_Chi2;
-const PIDVariables::varType PIDVariables::clushape_first = PIDVariables::CLUSHAPE_Chi2;
-const PIDVariables::varType PIDVariables::clushape_beyond = PIDVariables::DEDX_Chi2electron;
-const PIDVariables::varType PIDVariables::dEdx_first = PIDVariables::DEDX_Chi2electron;
-const PIDVariables::varType PIDVariables::dEdx_beyond = PIDVariables::N_VarTypes;
 
-// TODO: Optimize these cuts
-const double PIDVariables::ptCut = 0.01; // 1/10 of the minimum reconstructible pT at ILD
-const double PIDVariables::caloCut = 0.05; // Minimum ECAL+HCAL to calculate ECAL/(ECAL+HCAL)
-const double PIDVariables::muSysCut = 0.01;
-const double PIDVariables::muSysPCut = 5.;
+PIDVariables_base::PIDVariables_base() :
+  _p(0.)
+{}
 
-const double PIDVariables::dEdx_MIP = 1.35e-7;
+PIDVariables_base::PIDVariables_base(EVENT::ReconstructedParticle* particle) :
+  _p(0.)
+{}
 
-PIDVariables::PIDVariables() : dEdx(0), p(0) {
-  // Create map of particle properties.
-  particlePars = PIDParticles::CreateParticleMap();
-  _rand = new TRandom3;
-
-  PopulateMap();
-}
-
-PIDVariables::PIDVariables(EVENT::ReconstructedParticle* _particle) {
-  // Create map of particle properties. This must be done first
-  particlePars = PIDParticles::CreateParticleMap();
-  _rand = new TRandom3;
-
-  PopulateMap();
-  Update(_particle);
-}
-
-PIDVariables::~PIDVariables() {
-  delete particlePars;
-  varMap.clear();
-  delete _rand;
-}
-
-void PIDVariables::PopulateMap() {
-  const int nBinsCommon = 8;
-  double * binsCommon = new double[nBinsCommon+1];
-  binsCommon[0] =  0.;
-  binsCommon[1] =  1.;
-  binsCommon[2] =  2.;
-  binsCommon[3] =  5.;
-  binsCommon[4] = 10.;
-  binsCommon[5] = 20.;
-  binsCommon[6] = 50.;
-  binsCommon[7] = 100.;
-  binsCommon[8] = 5000.;
-  varMap.insert(std::pair<varType, PIDVariable>(CALO_Total, PIDVariable("CaloTotal", "(ECAL+HCAL)/p", "", nBinsCommon, binsCommon, 0., 2., 40)));
-  varMap.insert(std::pair<varType, PIDVariable>(CALO_EFrac, PIDVariable("CaloEFrac", "ECAL/(ECAL+HCAL)", "", nBinsCommon, binsCommon, 0., 1., 50)));
-  varMap.insert(std::pair<varType, PIDVariable>(CALO_MuSys, PIDVariable("CaloMuSys", "#mu system deposit", "GeV", nBinsCommon, binsCommon, 0., 10., 50)));
-  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_Chi2, PIDVariable("CluShapeChi2", "Cluster shape #chi^{2}", "", nBinsCommon, binsCommon, -2., 20., 44)));
-  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_DiscrL, PIDVariable("DiscrepancyL", "Shower max / EM shower max", "", nBinsCommon, binsCommon, -30., 80., 55)));
-  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_DiscrT, PIDVariable("DiscrepancyT", "Absorption length", "R_{m}", nBinsCommon, binsCommon, 0., 1., 50)));
-  varMap.insert(std::pair<varType, PIDVariable>(CLUSHAPE_xl20, PIDVariable("Xl20", "xl20", "?", nBinsCommon, binsCommon, 0., 50., 50)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2electron, PIDVariable("dEdxChi2electron", "#chi^{2}_{dE/dx} (electron)", "", 0, NULL, -50., 50., 100)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2muon, PIDVariable("dEdxChi2muon", "#chi^{2}_{dE/dx} (#mu)", "", 0, NULL, -50., 50., 100)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2pion, PIDVariable("dEdxChi2pion", "#chi^{2}_{dE/dx} (#pi)", "", 0, NULL, -50., 50., 100)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2kaon, PIDVariable("dEdxChi2kaon", "#chi^{2}_{dE/dx} (K)", "", 0, NULL, -50., 50., 100)));
-  varMap.insert(std::pair<varType, PIDVariable>(DEDX_Chi2proton, PIDVariable("dEdxChi2proton", "#chi^{2}_{dE/dx} (proton)", "", 0, NULL, -50., 50., 100)));
-  delete binsCommon;
+PIDVariables_base::~PIDVariables_base() {
+  _varVec.clear();
 }
 
 
-int PIDVariables::Update(EVENT::ReconstructedParticle* _particle) {
+int PIDVariables_base::Update(EVENT::ReconstructedParticle* _particle) {
   EVENT::ClusterVec cluvec=_particle->getClusters();
   EVENT::TrackVec trk = _particle->getTracks();
   TVector3 p3(_particle->getMomentum());
@@ -87,149 +332,110 @@ int PIDVariables::Update(EVENT::ReconstructedParticle* _particle) {
 }
 
 
-int PIDVariables::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3){
-
-  p = p3.Mag();
+int PIDVariables_base::Update(const EVENT::ClusterVec cluvec,
+    const EVENT::TrackVec trax, const TVector3 p3){
 
   int result = 0;
-
-  //get deposit energy and shapes
-  EVENT::FloatVec shapes;
-  double ecal=0., hcal=0., mucal=0.;
-
-  if(cluvec.size()>0){
-    for(unsigned int i=0; i<cluvec.size(); i++){
-      FloatVec sde = cluvec[i]->getSubdetectorEnergies();
-      ecal += sde[0];
-      hcal += sde[1];
-      mucal+= sde[2];
-    }
-    // FIXME: DO we really want to use only the zeroth cluster?
-    shapes=cluvec[0]->getShape();
+  for (VarVec::iterator vit=_varVec.begin(); vit!=_varVec.end(); vit++) {
+    result |= (*vit)->Update(cluvec, trax, p3);
   }
-  else {
-    ecal = hcal = mucal = 0.;
-    result += MASK_EmptyClusters;
-  }
-
-  // IMPROVE HERE: use directly MCTruthTrackRelation and choose track with larger weight for dE/dx
-/*    dEdx = 0;
-    for (unsigned int itrack = 0; itrack < trax.size(); itrack++) {
-      dEdx += trax.at(itrack)->getdEdx();
-    }
-*/
-  if(trax.size() > 0) { dEdx = trax.at(0)->getdEdx(); }
-  else { dEdx = -dEdx_MIP; result += MASK_EmptyTracks; } // Keep an eye on get_dEdxChi2()...
-
-  // Normalise dEdx to MIP
-  dEdx /= dEdx_MIP;
-  if (dEdx < 1.e-15) result += MASK_ZerodEdx;
-
-  /*************************************/
-  /***      Calculate variables      ***/
-  /*************************************/
-
-  for (VarMap::iterator it=varMap.begin(); it!=varMap.end(); it++) it->second.SetValue(0);
-
-  // Basic variables
-  if(p3.Perp() > ptCut) {
-    varMap.at(CALO_Total).SetValue( (ecal +hcal) / p );
-  }
-  else { varMap.at(CALO_Total).SetValue( -1. ); }
-
-  if(ecal+hcal > caloCut) {
-    // Avoid ECAL fraction == 1.0 (1.0 goes into the overflow bin)
-    varMap.at(CALO_EFrac).SetValue( ecal/(ecal+hcal) - 1.e-6);
-  }
-  else { varMap.at(CALO_EFrac).SetValue( -1. ); }
-
-  // Introducing a very small additive spread to avoid complaints in TMVA for electrons
-  varMap.at(CALO_MuSys).SetValue(mucal+_rand->Gaus(0.,1.e-6));
-
-  // Shower shapes
-  if(shapes.size()!=0){
-    varMap.at(CLUSHAPE_Chi2).SetValue(shapes[0]);
-    varMap.at(CLUSHAPE_DiscrL).SetValue(TMath::Sign(float(TMath::Log(fabs(shapes[5])+FLT_MIN)), shapes[5]));
-//    varMap.at(CLUSHAPE_DiscrL).SetValue(shapes[5]);
-    if(fabs(shapes[3]) < FLT_MAX)
-    {
-      // varMap.at(CLUSHAPE_DiscrT).SetValue(fabs(shapes[3]/(shapes[6])));
-      varMap.at(CLUSHAPE_DiscrT).SetValue(TMath::Sign(float(TMath::Log(shapes[3]+FLT_MIN)), shapes[3])); }
-    else { varMap.at(CLUSHAPE_DiscrT).SetValue(_rand->Gaus(-1.,1.e-6)); }
-    varMap.at(CLUSHAPE_xl20).SetValue(shapes[15]/(2.0*3.50));
-  }
-  else
-  {  // If shapes empty, push the value out of bounds. Then these variables
-     // give the same likelihood for all particle types
-    varMap.at(CLUSHAPE_Chi2).SetValue(_rand->Gaus(-1.,1.e-6));
-    varMap.at(CLUSHAPE_DiscrL).SetValue(_rand->Gaus(-100.,1.e-6));
-    varMap.at(CLUSHAPE_DiscrT).SetValue(_rand->Gaus(-1.,1.e-6));
-    varMap.at(CLUSHAPE_xl20).SetValue(_rand->Gaus(-1.,1.e-6));
-    result += MASK_EmptyShapes;
-  }
-
-  // dE/dx
-  /*
-  varMap.at(DEDX_Chi2electron).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::electron))) );
-  varMap.at(DEDX_Chi2muon).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::muon))) );
-  varMap.at(DEDX_Chi2pion).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::pion))) );
-  varMap.at(DEDX_Chi2kaon).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::kaon))) );
-  varMap.at(DEDX_Chi2proton).SetValue( get_dEdxChi2(&(particlePars->at(PIDParticles::proton))) );
-*/
-  varMap.at(DEDX_Chi2electron).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::electron))) );
-  varMap.at(DEDX_Chi2muon).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::muon))) );
-  varMap.at(DEDX_Chi2pion).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::pion))) );
-  varMap.at(DEDX_Chi2kaon).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::kaon))) );
-  varMap.at(DEDX_Chi2proton).SetValue( get_dEdxSignedLogChi2(&(particlePars->at(PIDParticles::proton))) );
-
-  return result;
-
-}
-
-
-void PIDVariables::SetOutOfRange() {
-  for (VarMap::iterator it=varMap.begin(); it!=varMap.end(); it++)
-    { it->second.SetValue(-FLT_MAX); }
-}
-
-
-float PIDVariables::get_dEdxChi2(PIDParticles::PIDParticle_base* hypothesis) const {
-
-  //get expected dE/dx
-  float ExpdEdx=BetheBloch(hypothesis);
-
-  float chi2 = -100.;
-  if(dEdx>FLT_MIN) {
-    //get chi2!!(so far 5% error assumed. conservative)
-    chi2=TMath::Power((dEdx-ExpdEdx)/(0.05*dEdx),2.0);
-    if(dEdx-ExpdEdx<0.0) chi2=-chi2;    //get signed chi2
-  }
-
-  return chi2;
-}
-
-float PIDVariables::get_dEdxSignedLogChi2(PIDParticles::PIDParticle_base* hypothesis) const {
-
-  //get expected dE/dx
-  float ExpdEdx=BetheBloch(hypothesis);
-
-//  float result = _rand->Gaus(-100., 1e-6);
-  float result = -100.;
-  if(dEdx>FLT_MIN) {
-    float normdev = (dEdx-ExpdEdx)/(0.05*dEdx);
-    result = TMath::Sign(float(2.*TMath::Log(fabs(normdev))+FLT_MIN), normdev);
-  }
+  _p = p3.Mag();
 
   return result;
 }
 
-double PIDVariables::BetheBloch(PIDParticles::PIDParticle_base* hypothesis) const {
 
-  Double_t bg=p/hypothesis->mass;
-  Double_t b=sqrt(bg*bg/(1.0+bg*bg));
-  //Double_t g=bg/b;
-  Double_t tmax=hypothesis->GetBBpars()[2]*TMath::Power(bg,2.0);   ///(1.0+pars[3]*g+pars[4]);
-
-  return (0.5*hypothesis->GetBBpars()[0]*TMath::Log(hypothesis->GetBBpars()[1]*TMath::Power(bg,2.0)*tmax)
-          - hypothesis->GetBBpars()[3]*b*b - hypothesis->GetBBpars()[4]*bg/2.0)/(b*b);
+void PIDVariables_base::SetOutOfRange() {
+  for (VarVec::iterator vit=_varVec.begin(); vit!=_varVec.end(); vit++)
+    { (*vit)->SetOutOfRange(); }
 }
+
+
+/***  PIDVariables for the Likelihood PID processor ***/
+
+PIDVariables_LLPID::PIDVariables_LLPID()
+{
+  Populate();
+}
+
+
+PIDVariables_LLPID::PIDVariables_LLPID(EVENT::ReconstructedParticle* particle)
+{
+  Populate();
+  Update(particle);
+}
+
+
+PIDVariables_LLPID::~PIDVariables_LLPID()
+{}
+
+void PIDVariables_LLPID::Populate() {
+
+  _varVec.push_back(new PID_CaloTotal);
+  _varVec.push_back(new PID_CaloEFrac);
+  _varVec.push_back(new PID_CaloMuSys);
+
+  _varVec.push_back(new PID_CluShapeChi2);
+  _varVec.push_back(new PID_CluShapeLDiscr);
+  _varVec.push_back(new PID_CluShapeTDiscr);
+  _varVec.push_back(new PID_CluShapeXl20);
+
+  _varVec.push_back(new PID_dEdxChi2(&PIDParticles::electronProperties));
+  _varVec.push_back(new PID_dEdxChi2(&PIDParticles::muonProperties));
+  _varVec.push_back(new PID_dEdxChi2(&PIDParticles::pionProperties));
+  _varVec.push_back(new PID_dEdxChi2(&PIDParticles::kaonProperties));
+  _varVec.push_back(new PID_dEdxChi2(&PIDParticles::protonProperties));
+}
+
+
+PIDVariables_MvaPid::PIDVariables_MvaPid()
+{
+  Populate();
+}
+
+PIDVariables_MvaPid::PIDVariables_MvaPid(EVENT::ReconstructedParticle* particle)
+{
+  Populate();
+  Update(particle);
+}
+
+
+PIDVariables_MvaPid::~PIDVariables_MvaPid()
+{}
+
+int PIDVariables_MvaPid::Update(EVENT::ReconstructedParticle* particle)
+{
+  int result = PIDVariables_base::Update(particle);
+  RefreshMvaVars();
+  return result;
+}
+
+void PIDVariables_MvaPid::RefreshMvaVars()
+{
+  for(unsigned int i=0; i<_varVec.size(); i++) {
+    _mvaVars.at(i) = _varVec.at(i)->Value();
+  }
+}
+
+void PIDVariables_MvaPid::Populate() {
+
+  _varVec.push_back(new PID_CaloTotal);
+  _varVec.push_back(new PID_CaloEFrac);
+  _varVec.push_back(new PID_CaloMuSys);
+
+  _varVec.push_back(new PID_CluShapeChi2);
+  _varVec.push_back(new PID_CluShapeLDiscr);
+  _varVec.push_back(new PID_CluShapeTDiscr);
+  _varVec.push_back(new PID_CluShapeXl20);
+
+  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::electronProperties));
+  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::muonProperties));
+  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::pionProperties));
+  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::kaonProperties));
+  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::protonProperties));
+
+  for(unsigned int i=0; i<_varVec.size(); i++) {
+    _mvaVars.push_back(0.);
+  }
+}
+

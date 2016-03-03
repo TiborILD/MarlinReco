@@ -40,7 +40,7 @@ public:
   {
     for (int i=0; i<5; i++) _BBpars[i] = base.GetBBpars()[i];
   }
-  ~PIDParticle_base() {}
+  ~PIDParticle_base() { /*delete _name;*/ }
 
   const int pdg;
   const double mass;
@@ -120,13 +120,13 @@ public:
 
   MVAPIDHypothesis (const char *_name, int _pdg, double _mass, const double* _BBpars, const float mvaCut=0.) :
     PIDParticle_base(_name, _pdg, _mass, _BBpars),
-    _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent")),
+    _mva(0), _q(0), _sigAbove(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent")),
     _histoQ(NULL), _histoSig(NULL), _histoBkg(NULL)
   {  }
 
   MVAPIDHypothesis (const PIDParticle_base &base, const float mvaCut=0.) :
     PIDParticle_base(base),
-    _mva(0), _q(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent")),
+    _mva(0), _q(0), _sigAbove(0), _mvaCut(mvaCut), _reader(new TMVA::Reader("Silent")),
     _histoQ(NULL), _histoSig(NULL), _histoBkg(NULL)
   {  }
 

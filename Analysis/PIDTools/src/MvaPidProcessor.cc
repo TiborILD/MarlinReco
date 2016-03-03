@@ -23,9 +23,9 @@ MvaPidProcessor::MvaPidProcessor() :
   _variables(NULL), _hypotheses(NULL),
   _description("Particle ID using MVA"),
   _pfoCol(NULL), _pidh(NULL), _mupiPID(NULL),
-  _nEvt(0), _nPFO(0), _nUnidentified(0), _nDecisionQ(0),
-_nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
-_nZerodEdx(0)
+  _nEvt(0), _nPFO(0), _nUnidentified(0), _nDecisionQ(0), _nDecisionSigAbove(0),
+  _nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
+  _nZerodEdx(0)
 {
   // Defaults for lowE mu-pi separation
   std::vector< std::string > mupi_weightfiles;
@@ -54,6 +54,9 @@ _nZerodEdx(0)
   for(PIDParticles::ParticleMap::iterator pit=defaultmap->begin();
                                           pit!=defaultmap->end(); pit++)
   { weightfiles.push_back(std::string("MvaPid_") + pit->second.Name()); }
+
+  delete defaultmap;
+  defaultmap = NULL;
 
 
   registerInputCollection( LCIO::RECONSTRUCTEDPARTICLE,
@@ -86,7 +89,7 @@ void MvaPidProcessor::init() {
   streamlog_out(DEBUG) << "   init called  " << std::endl ;
 
   _hypotheses = PIDParticles::CreateMVAPIDMap();
-  _variables = new PIDVariables;
+  _variables = new PIDVariables_MvaPid;
 
   // Prepare vectors of processor output parameters for the PIDHandler:
   // MVA output and Q-statistic for each hypothesis
@@ -103,23 +106,21 @@ void MvaPidProcessor::init() {
   // Prepare separate maps of MVA variables
   // (necessity because TMVA::Reader::AddVariable(...) does not take const pointers)
   // Add MVA variables to the MVA readers
-  for (variable_c_iterator it=_variables->GetMap()->begin();
-                           it!=_variables->GetMap()->end();
+  for (variable_c_iterator it=_variables->GetVariables()->begin();
+                           it!=_variables->GetVariables()->end();
                            it++)
   {
-    _mvaVars.insert(std::pair<const char*, float>(it->second.Name(), 0.));
+    _mvaVars.insert(std::pair<const char*, float>((*it)->Name(), 0.));
   }
-  _mvaVars.insert(std::pair<const char*, float>("p", 0.));
 
   for(hypotheses_iterator ith = _hypotheses->begin(); ith != _hypotheses->end(); ith++)
   {
-    for (variable_c_iterator it=_variables->GetMap()->begin();
-                             it!=_variables->GetMap()->end();
+    for (variable_c_iterator it=_variables->GetVariables()->begin();
+                             it!=_variables->GetVariables()->end();
                              it++)
     {
-      ith->second.AddMVAVariable(it->second.Name(), &(_mvaVars.at(it->second.Name())));
+      ith->second.AddMVAVariable((*it)->Name(), &(_mvaVars.at((*it)->Name())));
     }
-    ith->second.AddMVAVariable("seenP", &(_mvaVars.at("p")));
   }
 
   for(hypotheses_iterator ith = _hypotheses->begin(); ith != _hypotheses->end(); ith++) {
@@ -305,12 +306,12 @@ void MvaPidProcessor::end() {
 void MvaPidProcessor::Identify(ReconstructedParticle* particle) {
 
   short updateres = _variables->Update(particle);
-  if (updateres & PIDVariables::MASK_EmptyClusters) _nEmptyClusters++;
-  if (updateres & PIDVariables::MASK_EmptyTracks) _nEmptyTracks++;
-  if (updateres & PIDVariables::MASK_EmptyShapes) _nEmptyShapes++;
-  if (updateres & PIDVariables::MASK_ZerodEdx) _nZerodEdx++;
+  if (updateres & PIDVariable_base::MASK_EmptyClusters) _nEmptyClusters++;
+  if (updateres & PIDVariable_base::MASK_EmptyTracks) _nEmptyTracks++;
+  if (updateres & PIDVariable_base::MASK_EmptyShapes) _nEmptyShapes++;
+  if (updateres & PIDVariable_base::MASK_ZerodEdx) _nZerodEdx++;
 
-  if (updateres & (PIDVariables::MASK_EmptyClusters | PIDVariables::MASK_ZerodEdx) ) {
+  if (updateres & (PIDVariable_base::MASK_EmptyClusters | PIDVariable_base::MASK_ZerodEdx) ) {
     _bestHypothesis = _hypotheses->end();
     return;
   }
@@ -319,12 +320,11 @@ void MvaPidProcessor::Identify(ReconstructedParticle* particle) {
     // Not sure whether it is really necessary to repeatedly fill _mvaVars with the same
     // values within the hypothesis loop. However, TMVA::Reader does not promise to not
     // change the sensitive variables so I am just being cautious.
-    for(variable_c_iterator it=_variables->GetMap()->begin();
-                            it != _variables->GetMap()->end();
+    for(variable_c_iterator it=_variables->GetVariables()->begin();
+                            it != _variables->GetVariables()->end();
                             it++)
-    {  _mvaVars.at(it->second.Name()) = it->second.Value();  }
+    {  _mvaVars.at((*it)->Name()) = (*it)->Value();  }
 
-//    ith->second.SetMVAout(_readerMap.at(ith->first)->EvaluateMVA(_mvaMethod));
     ith->second.Evaluate(TString(_mvaMethod.c_str()));
   }
 
