@@ -27,10 +27,10 @@ MvaPidTraining::MvaPidTraining() :
   _description("Training of particle ID using MVA"),
   _tree(NULL),
   _seenP(0.), _truePDG(0), _isReconstructed(false),
-  _hasClusters(false), _hasShapes(false), _hasdEdx(false),
+  _hasClusters(false), _hasShapes(false), _hasdEdx(false), _hasMomentum(false),
   _signalPDG(0),
   _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0),
-  _nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
+  _nInvalidMomentum(0), _nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
   _nZerodEdx(0)
 {
   registerInputCollection( LCIO::LCRELATION,
@@ -103,11 +103,15 @@ void MvaPidTraining::init() {
   }
 
   _tree->Branch("seenP",&_seenP) ;
-  _tree->Branch("truePDG",&_truePDG) ;
-  _tree->Branch("isReconstructed",&_isReconstructed) ;
-  _tree->Branch("hasClusters",&_hasClusters) ;
-  _tree->Branch("hasShapes",&_hasShapes) ;
-  _tree->Branch("hasdEdx",&_hasdEdx) ;
+  _tree->Branch("truePDG",&_truePDG, "truePDG/I") ;
+  _tree->Branch("isReconstructed",&_isReconstructed, "isReconstructed/O") ;
+  _tree->Branch("hasClusters",&_hasClusters, "hasClusters/O") ;
+  _tree->Branch("hasShapes",&_hasShapes, "hasShapes/O") ;
+  _tree->Branch("hasdEdx",&_hasdEdx, "hasdEdx/O") ;
+  _tree->Branch("hasMomentum",&_hasMomentum, "hasMomentum/O") ;
+
+  // Randomiser for smearing discrete values of variables
+  PIDVariable_base::varRand = new TRandom3;
 
 }
 
@@ -190,6 +194,8 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
 
       //  PID sensitive variables  ***/
       short updateres = _variables.Update(rcp);
+      if (updateres & PIDVariable_base::MASK_InvalidMomentum) { _nInvalidMomentum++; _hasMomentum=false; }
+      else { _hasMomentum = true; }
       if (updateres & PIDVariable_base::MASK_EmptyClusters) { _nEmptyClusters++; _hasClusters=false; }
       else { _hasClusters = true; }
       if (updateres & PIDVariable_base::MASK_EmptyTracks) _nEmptyTracks++;
@@ -205,6 +211,7 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
       streamlog_out(DEBUG) << "No ReconstructedParticle found for this mcp!" << std::endl ;
 
       _variables.SetOutOfRange();
+      _hasMomentum = _hasClusters = _hasShapes = _hasdEdx = false;
       _seenP = 0.;
 
     }
@@ -230,11 +237,14 @@ void MvaPidTraining::check( LCEvent * evt ) {
 
 void MvaPidTraining::end() {
 
+  std::cout << "Clearing.\n";
+  _variables.ClearVars();
+  std::cout << "Cleared.\n";
 
-//  _tree->Write();
-//  exit(0);
+  _tree->Write();
+  exit(0);
 
-//  TFile* outputFile = TFile::Open( _mvaResponseFileName.c_str(), "RECREATE" );
+  TFile* outputFile = TFile::Open( _mvaResponseFileName.c_str(), "RECREATE" );
   TMVA::Factory * factory = new TMVA::Factory(_weightFileName, (TFile*)(gDirectory),
       "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification");
 
@@ -250,7 +260,7 @@ void MvaPidTraining::end() {
   factory->AddSpectator("seenP", "Measured momentum", "GeV", 'F');
 
   // Recognise signal and background from the truePDG - only reconstructed particles.
-  const char * basicCut = "isReconstructed&&hasClusters&&hasShapes&&hasdEdx";
+  const char * basicCut = "isReconstructed&&hasClusters&&hasdEdx&&hasMomentum";
   TCut signalCut("signalCut", Form("(abs(truePDG)==%d)&&%s", _signalPDG, basicCut));
   TCut backgroundCut("backgroundCut", Form("(abs(truePDG)!=%d)&&%s", _signalPDG, basicCut));
 
@@ -259,9 +269,15 @@ void MvaPidTraining::end() {
   factory->BookMethod(_mvaMethod, _mvaMethod, _mvaMethodOptions);
 //  factory->PrintHelpMessage(_mvaMethod);
 
+
   factory->TrainAllMethods();
+  _tree->FlushBaskets();
+  outputFile->Write();
+  exit(0);
   factory->TestAllMethods();
+//  outputFile->Write();
   factory->EvaluateAllMethods();
+//  outputFile->Write();
 
 
   /*** Create, fill and store the histogram of the Q-statistic ***/

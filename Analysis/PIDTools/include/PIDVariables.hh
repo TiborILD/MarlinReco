@@ -27,6 +27,8 @@
 
 #include "PIDParticles.hh"
 
+class TRandom3;
+
 using EVENT::FloatVec;
 
 
@@ -67,6 +69,10 @@ public:
   virtual void SetOutOfRange() = 0;
 
   static double BetheBloch(const PIDParticles::PIDParticle_base* hypothesis, const float p);
+  // Some PIDVariables have occasional discrete values in VALID events.
+  // MVA does not like this, so we will add tiny smearing in such cases
+  // If varRand is not created by the user, no smearing will be added
+  static TRandom3 *varRand;
 
 protected:
   float _value;
@@ -103,6 +109,7 @@ public:
   PID_CaloMuSys();
   virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
   virtual void SetOutOfRange() { _value = -1.; }
+  static const float muSysCut;
 };
 
 class PID_CluShapeChi2: public PIDVariable_base
@@ -180,7 +187,7 @@ class PIDVariables_base {
 public:
   PIDVariables_base();
   PIDVariables_base(EVENT::ReconstructedParticle*);
-  virtual ~PIDVariables_base();
+  virtual ~PIDVariables_base() = 0;
 
   typedef std::vector<PIDVariable_base*> VarVec;
   typedef PIDParticles::ParticleMap ParticleMap;
@@ -188,10 +195,11 @@ public:
   const VarVec* GetVariables() const { return &_varVec; };
   float GetP() const { return _p; }
 
-  int Update(EVENT::ReconstructedParticle*);
-  int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p);
-  void SetOutOfRange();
+  virtual int Update(EVENT::ReconstructedParticle*);
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p);
+  virtual void SetOutOfRange();
 
+  virtual void ClearVars();
 
 protected:
   VarVec _varVec;
@@ -224,16 +232,18 @@ public:
   virtual ~PIDVariables_MvaPid();
 
   virtual int Update(EVENT::ReconstructedParticle*);
+  virtual void SetOutOfRange();
 
   FloatVec* GetMvaVariables() { return &_mvaVars; }
 
 protected:
   virtual void Populate();
 
-  void RefreshMvaVars();
   // Copy of all variables for the TMVA::Reader and TMVA::Factory
   // As they do not accept const pointers
   FloatVec _mvaVars;
+  void RefreshMvaVars();
+
 };
 
 

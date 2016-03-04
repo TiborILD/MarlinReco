@@ -10,6 +10,8 @@
  *
  ******************************************************/
 
+TRandom3* PIDVariable_base::varRand = NULL;
+
 int PIDVariable_base::Update(EVENT::ReconstructedParticle* particle)
 {
   EVENT::ClusterVec cluvec=particle->getClusters();
@@ -29,6 +31,7 @@ double PIDVariable_base::BetheBloch(const PIDParticles::PIDParticle_base* hypoth
   return (0.5*hypothesis->GetBBpars()[0]*TMath::Log(hypothesis->GetBBpars()[1]*TMath::Power(bg,2.0)*tmax)
           - hypothesis->GetBBpars()[3]*b*b - hypothesis->GetBBpars()[4]*bg/2.0)/(b*b);
 }
+
 
 
 /***   (ECAL+HCAL)/p   ***/
@@ -67,7 +70,8 @@ int PID_CaloTotal::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
 
 /***   ECAL/(ECAL+HCAL)   ***/
 
-const float PID_CaloEFrac::caloCut = 0.001;
+// If total calorimetric deposit smaller than 1 keV consider it as empty clusters
+const float PID_CaloEFrac::caloCut = 1.e-6;
 
 PID_CaloEFrac::PID_CaloEFrac() :
     PIDVariable_base("CaloEFrac", "ECAL/(ECAL+HCAL)", "")
@@ -85,7 +89,7 @@ int PID_CaloEFrac::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
 
     if ( ecal+hcal < caloCut ) {
       SetOutOfRange();
-      return 0;
+      return MASK_EmptyClusters;
     }
     else {
       _value = ecal/(ecal+hcal) ;
@@ -101,8 +105,11 @@ int PID_CaloEFrac::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
 
 /***   Muon System deposit   ***/
 
+// If muon-system calorimetric deposit smaller than 1 keV consider it as empty clusters
+const float PID_CaloMuSys::muSysCut = 1.e-6;
+
 PID_CaloMuSys::PID_CaloMuSys() :
-    PIDVariable_base("CaloEFrac", "E_{#mu system}", "GeV")
+    PIDVariable_base("CaloMuSys", "E_{#mu system}", "GeV")
 {}
 
 int PID_CaloMuSys::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
@@ -114,6 +121,11 @@ int PID_CaloMuSys::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec 
       mucal += sde[2];
     }
     _value = mucal;
+    if(_value < muSysCut) {
+      if(varRand) {
+        _value += varRand->Gaus(0., 1.e-6);
+      }
+    }
     return 0;
   }
   else {
@@ -139,6 +151,11 @@ int PID_CluShapeChi2::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackV
   FloatVec shapes=cluvec[0]->getShape();
   if(shapes.size()!=0){
     _value = shapes[0];
+    if (_value < -.1 ) {
+      if(varRand) {
+        _value += varRand->Gaus(0., 1.e-6);
+      }
+    }
     return 0;
   }
   else {
@@ -350,6 +367,14 @@ void PIDVariables_base::SetOutOfRange() {
     { (*vit)->SetOutOfRange(); }
 }
 
+void PIDVariables_base::ClearVars() {
+/*  for(unsigned int i=0; i<_varVec.size(); i++) {
+    delete _varVec.at(i);
+  }*/
+  _varVec.clear();
+}
+
+
 
 /***  PIDVariables for the Likelihood PID processor ***/
 
@@ -410,6 +435,12 @@ int PIDVariables_MvaPid::Update(EVENT::ReconstructedParticle* particle)
   return result;
 }
 
+void PIDVariables_MvaPid::SetOutOfRange()
+{
+  PIDVariables_base::SetOutOfRange();
+  RefreshMvaVars();
+}
+
 void PIDVariables_MvaPid::RefreshMvaVars()
 {
   for(unsigned int i=0; i<_varVec.size(); i++) {
@@ -438,4 +469,3 @@ void PIDVariables_MvaPid::Populate() {
     _mvaVars.push_back(0.);
   }
 }
-

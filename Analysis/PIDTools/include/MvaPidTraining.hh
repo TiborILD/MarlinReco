@@ -67,7 +67,7 @@ private:
   PIDVariables_MvaPid _variables;
   float _seenP;
   int _truePDG;
-  bool _isReconstructed, _hasClusters, _hasShapes, _hasdEdx;
+  bool _isReconstructed, _hasClusters, _hasShapes, _hasdEdx, _hasMomentum;
 
   // Steerables:
   int _signalPDG;
@@ -79,7 +79,7 @@ private:
   // Counters
   unsigned int _nEvt;
   unsigned int _nMCPtot, _nRec, _nTrkCaloMismatch;
-  unsigned int _nEmptyClusters, _nEmptyTracks, _nEmptyShapes, _nZerodEdx;
+  unsigned int _nInvalidMomentum, _nEmptyClusters, _nEmptyTracks, _nEmptyShapes, _nZerodEdx;
 
   // Number of channels for the histogram of Q-statistic
   static const int nChanQ = 1000;
