@@ -180,8 +180,8 @@ void LikelihoodPID::CalcPosteriors(){
   // Basic variables
   if( (_algoFlags&MASK_Basic) ) {
 
-    for (variable_c_iterator varIt = variables.GetMap()->find(PIDVariables::basic_first);
-            varIt!=variables.GetMap()->find(PIDVariables::basic_beyond); varIt++)
+    for (variable_c_iterator varIt = variables.GetMap()->find(PIDVariables_base::basic_first);
+            varIt!=variables.GetMap()->find(PIDVariables_base::basic_beyond); varIt++)
     {
       // Addup logL for all particles
       for(particle_iterator partIt=particlePars->begin(); partIt!=particlePars->end(); partIt++) {
@@ -193,10 +193,10 @@ void LikelihoodPID::CalcPosteriors(){
 
   // Cluster shape vars
   if( (_algoFlags&MASK_Shapes)
-      && variables.GetValue(PIDVariables::CALO_Total)*variables.GetP()>PIDVariables::caloCut ) {
+      && variables.GetValue(PIDVariables_base::CALO_Total)*variables.GetP()>PIDVariables_base::caloCut ) {
 
-    for (variable_c_iterator varIt = variables.GetMap()->find(PIDVariables::clushape_first);
-          varIt!=variables.GetMap()->find(PIDVariables::clushape_beyond); varIt++)
+    for (variable_c_iterator varIt = variables.GetMap()->find(PIDVariables_base::clushape_first);
+          varIt!=variables.GetMap()->find(PIDVariables_base::clushape_beyond); varIt++)
     {
       // Addup logL for all particles
       for(particle_iterator partIt=particlePars->begin(); partIt!=particlePars->end(); partIt++) {
@@ -208,8 +208,8 @@ void LikelihoodPID::CalcPosteriors(){
   // dEdx vars
   if(_algoFlags&MASK_dEdx) {
 
-    for (variable_c_iterator varIt = variables.GetMap()->find(PIDVariables::dEdx_first);
-        varIt!=variables.GetMap()->find(PIDVariables::dEdx_beyond); varIt++)
+    for (variable_c_iterator varIt = variables.GetMap()->find(PIDVariables_base::dEdx_first);
+        varIt!=variables.GetMap()->find(PIDVariables_base::dEdx_beyond); varIt++)
     {
       // Addup logL for all particles
       for(particle_iterator partIt=particlePars->begin(); partIt!=particlePars->end(); partIt++) {

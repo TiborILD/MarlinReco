@@ -15,6 +15,7 @@
 #include "TFile.h"
 #include "TCut.h"
 #include "TMVA/Factory.h"
+
 #include "TCanvas.h"
 #include "TH1F.h"
 
@@ -25,10 +26,11 @@ MvaPidTraining aMvaPidTraining;
 MvaPidTraining::MvaPidTraining() :
   Processor("MvaPidTraining"),
   _description("Training of particle ID using MVA"),
-  _tree(NULL),
+  _treeBkgTraining(NULL), _treeSigTraining(NULL),
+  _treeBkgTest(NULL), _treeSigTest(NULL),
   _seenP(0.), _truePDG(0), _isReconstructed(false),
   _hasClusters(false), _hasShapes(false), _hasdEdx(false), _hasMomentum(false),
-  _signalPDG(0),
+  _signalPDG(0), _pMin(0.), _pMax(0.),
   _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0),
   _nInvalidMomentum(0), _nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
   _nZerodEdx(0)
@@ -59,11 +61,21 @@ MvaPidTraining::MvaPidTraining() :
             _signalPDG,
             11 );
 
+  registerProcessorParameter( "PMin" ,
+            "Minimum measured momentum for this training",
+            _pMin,
+            float(5.0) );
+
+  registerProcessorParameter( "PMax" ,
+            "Maximum measured momentum for this training",
+            _pMax,
+            float(20.) );
+
 
   registerProcessorParameter( "MVAResponseFileName" ,
             "Root file with MVA response data",
             _mvaResponseFileName,
-            std::string("MvaPidTraining.response.root") );
+            std::string("MvaPidTraining.response") );
 
 
   registerProcessorParameter( "MVAMethod" ,
@@ -79,7 +91,7 @@ MvaPidTraining::MvaPidTraining() :
   registerProcessorParameter( "WeightFileName" ,
             "File name to write weights",
             _weightFileName,
-            std::string("MvaPid_electron.xml") );
+            std::string("MvaPid_electron") );
 }
 
 
@@ -95,20 +107,45 @@ void MvaPidTraining::init() {
   _nMCPtot = _nRec = _nTrkCaloMismatch = 0;
   _nEmptyClusters = _nEmptyShapes = _nEmptyTracks = _nZerodEdx = 0;
 
-  _tree = new TTree("varTree","varTree");
+  _treeBkgTraining = new TTree("treeBkgTraining","treeBkgTraining");
+  _treeSigTraining = new TTree("treeSigTraining","treeSigTraining");
+  _treeBkgTest = new TTree("treeBkgTest","treeBkgTest");
+  _treeSigTest = new TTree("treeSigTest","treeSigTest");
 
   for(unsigned int i = 0; i < _variables.GetVariables()->size(); i++)
   {
-    _tree->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)));
+    _treeBkgTraining->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)), _variables.GetVariables()->at(i)->Name());
+    _treeSigTraining->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)), _variables.GetVariables()->at(i)->Name());
+    _treeBkgTest->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)), _variables.GetVariables()->at(i)->Name());
+    _treeSigTest->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)), _variables.GetVariables()->at(i)->Name());
   }
 
-  _tree->Branch("seenP",&_seenP) ;
-  _tree->Branch("truePDG",&_truePDG, "truePDG/I") ;
-  _tree->Branch("isReconstructed",&_isReconstructed, "isReconstructed/O") ;
-  _tree->Branch("hasClusters",&_hasClusters, "hasClusters/O") ;
-  _tree->Branch("hasShapes",&_hasShapes, "hasShapes/O") ;
-  _tree->Branch("hasdEdx",&_hasdEdx, "hasdEdx/O") ;
-  _tree->Branch("hasMomentum",&_hasMomentum, "hasMomentum/O") ;
+  _treeBkgTraining->Branch("seenP",&_seenP, "seenP/F") ;
+  _treeBkgTraining->Branch("truePDG",&_truePDG, "truePDG/I") ;
+  _treeBkgTraining->Branch("isReconstructed",&_isReconstructed, "isReconstructed/O") ;
+
+  _treeSigTraining->Branch("seenP",&_seenP, "seenP/F") ;
+  _treeSigTraining->Branch("truePDG",&_truePDG, "truePDG/I") ;
+  _treeSigTraining->Branch("isReconstructed",&_isReconstructed, "isReconstructed/O") ;
+
+  _treeBkgTest->Branch("seenP",&_seenP, "seenP/F") ;
+  _treeBkgTest->Branch("truePDG",&_truePDG, "truePDG/I") ;
+  _treeBkgTest->Branch("isReconstructed",&_isReconstructed, "isReconstructed/O") ;
+
+  _treeSigTest->Branch("seenP",&_seenP, "seenP/F") ;
+  _treeSigTest->Branch("truePDG",&_truePDG, "truePDG/I") ;
+  _treeSigTest->Branch("isReconstructed",&_isReconstructed, "isReconstructed/O") ;
+  // The following are not needed as branches. Events with any of these false are not written
+//  _treeBkgTraining->Branch("hasClusters",&_hasClusters, "hasClusters/O") ;
+//  _treeBkgTraining->Branch("hasShapes",&_hasShapes, "hasShapes/O") ;
+//  _treeBkgTraining->Branch("hasdEdx",&_hasdEdx, "hasdEdx/O") ;
+//  _treeBkgTraining->Branch("hasMomentum",&_hasMomentum, "hasMomentum/O") ;
+
+  // Not working:
+ // _treeSigTraining->CopyAddresses(_treeBkgTraining);
+ // _treeBkgTest->CopyAddresses(_treeBkgTraining);
+ // _treeSigTest->CopyAddresses(_treeBkgTraining);
+
 
   // Randomiser for smearing discrete values of variables
   PIDVariable_base::varRand = new TRandom3;
@@ -183,40 +220,56 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
     streamlog_out(DEBUG) << "Found reco particle for mcp at imaxweight = " << imaxweight << " with weight = " << maxweight << std::endl ;
 
     _isReconstructed = (imaxweight>=0);
-
-    if (_isReconstructed) {
-
-      _nRec++;
-
-      ReconstructedParticle* rcp =  (ReconstructedParticle*) recovec.at(imaxweight);
-      EVENT::TrackVec trax = rcp->getTracks();
-      TVector3 p3(rcp->getMomentum());
-
-      //  PID sensitive variables  ***/
-      short updateres = _variables.Update(rcp);
-      if (updateres & PIDVariable_base::MASK_InvalidMomentum) { _nInvalidMomentum++; _hasMomentum=false; }
-      else { _hasMomentum = true; }
-      if (updateres & PIDVariable_base::MASK_EmptyClusters) { _nEmptyClusters++; _hasClusters=false; }
-      else { _hasClusters = true; }
-      if (updateres & PIDVariable_base::MASK_EmptyTracks) _nEmptyTracks++;
-      if (updateres & PIDVariable_base::MASK_EmptyShapes) { _nEmptyShapes++; _hasShapes=false; }
-      else { _hasShapes = true; }
-      if (updateres & PIDVariable_base::MASK_ZerodEdx) { _nZerodEdx++; _hasdEdx = false; }
-      else { _hasdEdx = true; }
-      _seenP = p3.Mag();
-
-    } // if reco part
     // TODO: IMPROVE HERE: CHECK if track or cluster exists even if no PF!
-    else {
+
+    /*** Reject if no tracks found ***/
+    if (!_isReconstructed) {
       streamlog_out(DEBUG) << "No ReconstructedParticle found for this mcp!" << std::endl ;
-
-      _variables.SetOutOfRange();
-      _hasMomentum = _hasClusters = _hasShapes = _hasdEdx = false;
-      _seenP = 0.;
-
+      continue;
     }
 
-    _tree->Fill();
+    _nRec++;
+
+    ReconstructedParticle* rcp =  (ReconstructedParticle*) recovec.at(imaxweight);
+    EVENT::TrackVec trax = rcp->getTracks();
+    TVector3 p3(rcp->getMomentum());
+    _seenP = p3.Mag();
+
+    /*** Reject if outside of the momentum range ***/
+    if (_seenP<_pMin||_seenP>_pMax) continue;
+
+    //  PID sensitive variables  ***/
+    short updateres = _variables.Update(rcp);
+    if (updateres & PIDVariable_base::MASK_InvalidMomentum) { _nInvalidMomentum++; _hasMomentum=false; }
+    else { _hasMomentum = true; }
+    if (updateres & PIDVariable_base::MASK_EmptyClusters) { _nEmptyClusters++; _hasClusters=false; }
+    else { _hasClusters = true; }
+    if (updateres & PIDVariable_base::MASK_EmptyTracks) _nEmptyTracks++;
+    if (updateres & PIDVariable_base::MASK_EmptyShapes) { _nEmptyShapes++; _hasShapes=false; }
+    else { _hasShapes = true; }
+    if (updateres & PIDVariable_base::MASK_ZerodEdx) { _nZerodEdx++; _hasdEdx = false; }
+    else { _hasdEdx = true; }
+
+    /*** Reject if clusters or dEdx missing ***/
+    if (!(_hasClusters&&_hasdEdx)) continue;
+
+    /*** Select and fill the correct tree ***/
+    if(TMath::Abs(_truePDG)==_signalPDG) {
+      if(PIDVariable_base::varRand->Uniform() < .5) {
+        _treeSigTraining->Fill();
+      }
+      else {
+        _treeSigTest->Fill();
+      }
+    }
+    else { // background PDG
+      if(PIDVariable_base::varRand->Uniform() < .5) {
+        _treeBkgTraining->Fill();
+      }
+      else {
+        _treeBkgTest->Fill();
+      }
+    }
 
   }  // loop over MCPs
 
@@ -237,43 +290,45 @@ void MvaPidTraining::check( LCEvent * evt ) {
 
 void MvaPidTraining::end() {
 
-  std::cout << "Clearing.\n";
-  _variables.ClearVars();
-  std::cout << "Cleared.\n";
+//  std::cout << "Clearing.\n";
+//  _variables.ClearVars();
+//  std::cout << "Cleared.\n";
 
-  _tree->Write();
+/*  _treeSigTraining->Write();
+  _treeBkgTraining->Write();
+  _treeSigTest->Write();
+  _treeBkgTest->Write();
   exit(0);
+*/
+
+  _weightFileName += TString::Format("_%.1f-%.1fGeV", _pMin, _pMax);
+  _mvaResponseFileName += TString::Format("_%.1f-%.1fGeV.root", _pMin, _pMax);
 
   TFile* outputFile = TFile::Open( _mvaResponseFileName.c_str(), "RECREATE" );
-  TMVA::Factory * factory = new TMVA::Factory(_weightFileName, (TFile*)(gDirectory),
+//  TMVA::Factory * factory = new TMVA::Factory(_weightFileName, (TFile*)(gDirectory),
+  TMVA::Factory * factory = new TMVA::Factory(_weightFileName, outputFile,
       "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification");
+
+  factory->AddSignalTree(_treeSigTraining, 1., TMVA::Types::kTraining);
+  factory->AddBackgroundTree(_treeBkgTraining, 1., TMVA::Types::kTraining);
+  factory->AddSignalTree(_treeSigTest, 1., TMVA::Types::kTesting);
+  factory->AddBackgroundTree(_treeBkgTest, 1., TMVA::Types::kTesting);
 
   // Add sensitive variables - they are known from the map
   for(variable_c_iterator vit=_variables.GetVariables()->begin();
       vit!=_variables.GetVariables()->end(); vit++)
   {
-//    std::cout << "Adding variable:\nExpression: " << (*vit)->Name() << "; title: "
-//              << (*vit)->Description() << "; Unit: " << (*vit)->Unit() << std::endl;
     factory->AddVariable((*vit)->Name(), (*vit)->Description(), (*vit)->Unit(), 'F');
   }
-//  exit(0);
   factory->AddSpectator("seenP", "Measured momentum", "GeV", 'F');
 
-  // Recognise signal and background from the truePDG - only reconstructed particles.
-  const char * basicCut = "isReconstructed&&hasClusters&&hasdEdx&&hasMomentum";
-  TCut signalCut("signalCut", Form("(abs(truePDG)==%d)&&%s", _signalPDG, basicCut));
-  TCut backgroundCut("backgroundCut", Form("(abs(truePDG)!=%d)&&%s", _signalPDG, basicCut));
-
-  factory->SetInputTrees(_tree, signalCut, backgroundCut);
+//  factory->PrepareTrainingAndTestTree( "", "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random:NormMode=NumEvents:!V" );
 
   factory->BookMethod(_mvaMethod, _mvaMethod, _mvaMethodOptions);
 //  factory->PrintHelpMessage(_mvaMethod);
 
 
   factory->TrainAllMethods();
-  _tree->FlushBaskets();
-  outputFile->Write();
-  exit(0);
   factory->TestAllMethods();
 //  outputFile->Write();
   factory->EvaluateAllMethods();
@@ -321,9 +376,11 @@ void MvaPidTraining::end() {
   for (int ibin=1; ibin<histoQ.GetNbinsX(); ibin++) {
     // Above and below refer to the upper edge of the bin
     nSigAbove -= sigMVA.GetBinContent(ibin);
+    if (nSigAbove < 1.e6*FLT_MIN) { nSigAbove = 1.e6*FLT_MIN; }
     nBkgBelow += bkgMVA.GetBinContent(ibin);
     nSigBelow += sigMVA.GetBinContent(ibin);
     nBkgAbove -= bkgMVA.GetBinContent(ibin);
+    if (nBkgAbove < 1.e6*FLT_MIN) { nBkgAbove = 1.e6*FLT_MIN; }
     float effSig = nSigAbove/nSig;
     float effBkg = nBkgAbove/nSig;
 //    if(effSig>.99) mvaCut = sigMVA.GetBinLowEdge(ibin+1);
@@ -333,10 +390,12 @@ void MvaPidTraining::end() {
 //    if (nBkgBelow > 0) { q = effSig*nBkg/nBkgBelow; }
 //    else { q = FLT_MAX; }
 // Inner Q
-    if (nBkgAbove < 1.e6*FLT_MIN) { nBkgAbove = 1.e6*FLT_MIN; }
 //    q = - ( TMath::Log(nSigBelow) - TMath::Log(nBkgAbove) );
-    if (nBkgAbove < 1.e6*FLT_MIN) { nBkgAbove = 1.e6*FLT_MIN; }
     q = - (TMath::Log(effSig) + TMath::Log(nSigAbove) - TMath::Log(nSigAbove+nBkgAbove));
+    if (TMath::IsNaN(q)) {
+      std::cout << "Q is NaN. ibin = " << ibin << "; effSig = " << effSig << "; effBkg = "
+          << effBkg << "; nSigAbove = " << nSigAbove << "; nBkgAbove = " << nBkgAbove << std::endl;
+    }
 
     streamlog_out(DEBUG) << "Setting content in bin " << ibin << " to " << q << std::endl;
     histoQ.SetBinContent(ibin, q);
@@ -366,7 +425,7 @@ void MvaPidTraining::end() {
                          << TMath::Floor(1000.0*_nEmptyTracks/_nRec+.5)*.1 << "% of all PFOs).\n";
   streamlog_out(MESSAGE) << "Empty shapes " << _nEmptyShapes<< " times ("
                          << TMath::Floor(1000.0*_nEmptyShapes/_nRec+.5)*.1 << "% of all PFOs).\n";
-  streamlog_out(MESSAGE) << "dEdx < 1e-10 " << _nZerodEdx << " times ("
+  streamlog_out(MESSAGE) << "dEdx < 1e-15 MIP " << _nZerodEdx << " times ("
                          << TMath::Floor(1000.0*_nZerodEdx/_nRec+.5)*.1 << "% of all PFOs).\n";
 
 }

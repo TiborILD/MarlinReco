@@ -28,6 +28,7 @@ using PIDParticles::particleType;
 class LowMomentumMuPiSeparationPID_BDTG;
 class TTree;
 class TH1F;
+class TRandom3;
 
 
 class MvaPidTraining : public Processor{
@@ -61,9 +62,11 @@ private:
 
   std::string _description;
 
-  TTree* _tree;
+  TTree* _treeBkgTraining;
+  TTree* _treeSigTraining;
+  TTree* _treeBkgTest;
+  TTree* _treeSigTest;
 
-  FloatVec _trainingVars;
   PIDVariables_MvaPid _variables;
   float _seenP;
   int _truePDG;
@@ -71,6 +74,7 @@ private:
 
   // Steerables:
   int _signalPDG;
+  float _pMin, _pMax; // Limits of the momentum range
   std::string _mvaResponseFileName;
   std::string _mvaMethod;
   std::string _mvaMethodOptions;
