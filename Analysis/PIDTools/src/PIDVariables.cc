@@ -1,6 +1,7 @@
 #include <PIDVariables.hh>
 
 #include "TRandom3.h"
+#include "streamlog/streamlog.h"
 
 
 /*******************************************************
@@ -11,6 +12,16 @@
  ******************************************************/
 
 TRandom3* PIDVariable_base::varRand = NULL;
+
+PIDVariable_base::PIDVariable_base(const char*name, const char *description, const char *unit) :
+   _value(0.), _name(name), _description(description), _unit(unit)
+{
+  streamlog_out(DEBUG) << "Declaring PID variable " << _name << ". Description: " << _description
+      << "; unit: "<< (_unit[0] == '\0' ? "none" : _unit) << std::endl;
+}
+
+PIDVariable_base::~PIDVariable_base() {}
+
 
 int PIDVariable_base::Update(EVENT::ReconstructedParticle* particle)
 {
@@ -284,7 +295,7 @@ PID_dEdxLogChi2::PID_dEdxLogChi2(const PIDParticles::PIDParticle_base* hypothesi
     PIDVariable_base(Form("dEdx_LogChi2_%s", hypothesis->Name()),
         Form("Log(#chi2_{dE/dx %s})", hypothesis->Name()), ""),
         _hypothesis(hypothesis), _dEdx_MIP(dEdx_MIP)
-{/*std::cout << _name << "; " << _description << "; " << _unit << std::endl;*/}
+{}
 
 PID_dEdxLogChi2::~PID_dEdxLogChi2()
 {
@@ -337,6 +348,16 @@ PIDVariables_base::PIDVariables_base(EVENT::ReconstructedParticle* particle) :
 
 PIDVariables_base::~PIDVariables_base() {
   _varVec.clear();
+}
+
+PIDVariable_base* PIDVariables_base::FindVariable(std::string name) const {
+
+  for(unsigned int i=0; i<_varVec.size(); i++) {
+    if(name == _varVec.at(i)->Name()) {
+      return _varVec.at(i);
+    }
+  }
+  return NULL;
 }
 
 

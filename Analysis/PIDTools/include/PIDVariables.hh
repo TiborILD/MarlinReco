@@ -40,10 +40,8 @@ using EVENT::FloatVec;
 
 class PIDVariable_base {
 public:
-  PIDVariable_base(const char*name, const char *description, const char *unit) :
-    _value(0.), _name(name), _description(description), _unit(unit)
-    {};
-  virtual ~PIDVariable_base() {};
+  PIDVariable_base(const char*name, const char *description, const char *unit);
+  virtual ~PIDVariable_base();
 
   // Binary masks for interpreting the return code
   // of the Update() function
@@ -193,6 +191,7 @@ public:
   typedef PIDParticles::ParticleMap ParticleMap;
 
   const VarVec* GetVariables() const { return &_varVec; };
+  PIDVariable_base* FindVariable(std::string name) const;
   float GetP() const { return _p; }
 
   virtual int Update(EVENT::ReconstructedParticle*);

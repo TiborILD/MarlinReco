@@ -30,7 +30,7 @@ MvaPidTraining::MvaPidTraining() :
   _treeBkgTest(NULL), _treeSigTest(NULL),
   _seenP(0.), _truePDG(0), _isReconstructed(false),
   _hasClusters(false), _hasShapes(false), _hasdEdx(false), _hasMomentum(false),
-  _signalPDG(0), _pMin(0.), _pMax(0.),
+  _signalPDG(0), _pMin(0.), _pMax(0.), _usedVars(0),
   _nEvt(0), _nMCPtot(0), _nRec(0), _nTrkCaloMismatch(0),
   _nInvalidMomentum(0), _nEmptyClusters(0), _nEmptyTracks(0), _nEmptyShapes(0),
   _nZerodEdx(0)
@@ -60,6 +60,22 @@ MvaPidTraining::MvaPidTraining() :
             "PDG of the signal hypothesis for this training",
             _signalPDG,
             11 );
+
+/*  registerProcessorParameter( "UsedVariables" ,
+            "Bit mask selecting used variables",
+            _usedVars,
+            std::string("11111111111111111111111111111111") );
+*/
+
+  std::vector< std::string > usedVars;
+  for (unsigned int i=0; i<_variables.GetVariables()->size(); i++) {
+    usedVars.push_back( _variables.GetVariables()->at(i)->Name() );
+  }
+
+  registerProcessorParameter( "UsedVariables" ,
+            "List of used variables",
+            _usedVars,
+            usedVars );
 
   registerProcessorParameter( "PMin" ,
             "Minimum measured momentum for this training",
@@ -145,7 +161,6 @@ void MvaPidTraining::init() {
  // _treeSigTraining->CopyAddresses(_treeBkgTraining);
  // _treeBkgTest->CopyAddresses(_treeBkgTraining);
  // _treeSigTest->CopyAddresses(_treeBkgTraining);
-
 
   // Randomiser for smearing discrete values of variables
   PIDVariable_base::varRand = new TRandom3;
@@ -290,9 +305,9 @@ void MvaPidTraining::check( LCEvent * evt ) {
 
 void MvaPidTraining::end() {
 
-//  std::cout << "Clearing.\n";
+//  streamlog_out(DEBUG) << "Clearing.\n";
 //  _variables.ClearVars();
-//  std::cout << "Cleared.\n";
+//  streamlog_out(DEBUG) << "Cleared.\n";
 
 /*  _treeSigTraining->Write();
   _treeBkgTraining->Write();
@@ -315,10 +330,18 @@ void MvaPidTraining::end() {
   factory->AddBackgroundTree(_treeBkgTest, 1., TMVA::Types::kTesting);
 
   // Add sensitive variables - they are known from the map
-  for(variable_c_iterator vit=_variables.GetVariables()->begin();
-      vit!=_variables.GetVariables()->end(); vit++)
+  for(unsigned int i=0; i<_usedVars.size(); i++)
   {
-    factory->AddVariable((*vit)->Name(), (*vit)->Description(), (*vit)->Unit(), 'F');
+    PIDVariable_base* pvar = _variables.FindVariable(_usedVars.at(i));
+    if(pvar) {
+      PIDVariable_base* pvar = _variables.GetVariables()->at(i);
+      factory->AddVariable(pvar->Name(), pvar->Description(), pvar->Unit(), 'F');
+      streamlog_out(MESSAGE) << "Adding variable " << pvar->Name() << " to training.\n";
+    }
+    else {
+      streamlog_out(WARNING) << "Requested addition of unknown variable "
+          << _usedVars.at(i) << ". Skipping." << std::endl;
+    }
   }
   factory->AddSpectator("seenP", "Measured momentum", "GeV", 'F');
 
@@ -393,7 +416,7 @@ void MvaPidTraining::end() {
 //    q = - ( TMath::Log(nSigBelow) - TMath::Log(nBkgAbove) );
     q = - (TMath::Log(effSig) + TMath::Log(nSigAbove) - TMath::Log(nSigAbove+nBkgAbove));
     if (TMath::IsNaN(q)) {
-      std::cout << "Q is NaN. ibin = " << ibin << "; effSig = " << effSig << "; effBkg = "
+      streamlog_out(DEBUG) << "Q is NaN. ibin = " << ibin << "; effSig = " << effSig << "; effBkg = "
           << effBkg << "; nSigAbove = " << nSigAbove << "; nBkgAbove = " << nBkgAbove << std::endl;
     }
 
