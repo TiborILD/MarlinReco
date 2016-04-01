@@ -524,9 +524,15 @@ PIDVariables_MvaPid::PIDVariables_MvaPid()
   Populate();
 }
 
-PIDVariables_MvaPid::PIDVariables_MvaPid(EVENT::ReconstructedParticle* particle)
+PIDVariables_MvaPid::PIDVariables_MvaPid(const PIDParticle_base * particleType)
 {
-  Populate();
+  Populate(particleType);
+}
+
+PIDVariables_MvaPid::PIDVariables_MvaPid(const PIDParticle_base * particleType,
+    EVENT::ReconstructedParticle* particle)
+{
+  Populate(particleType);
   Update(particle);
 }
 
@@ -556,6 +562,11 @@ void PIDVariables_MvaPid::RefreshMvaVars()
 
 void PIDVariables_MvaPid::Populate() {
 
+  Populate(&PIDParticles::electronProperties);
+}
+
+void PIDVariables_MvaPid::Populate(const PIDParticle_base * particle) {
+
   _varVec.push_back(new PID_CaloTotal);
   _varVec.push_back(new PID_CaloEFrac);
   _varVec.push_back(new PID_CaloMuSys);
@@ -565,11 +576,7 @@ void PIDVariables_MvaPid::Populate() {
   _varVec.push_back(new PID_CluShapeLogTDiscr);
   _varVec.push_back(new PID_CluShapeXl20);
 
-  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::electronProperties));
-  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::muonProperties));
-  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::pionProperties));
-  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::kaonProperties));
-  _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::protonProperties));
+  _varVec.push_back(new PID_dEdxLogChi2(particle));
 
   for(unsigned int i=0; i<_varVec.size(); i++) {
     _mvaVars.push_back(0.);

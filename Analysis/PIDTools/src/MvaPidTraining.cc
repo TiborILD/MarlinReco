@@ -28,6 +28,7 @@ MvaPidTraining::MvaPidTraining() :
   _description("Training of particle ID using MVA"),
   _treeBkgTraining(NULL), _treeSigTraining(NULL),
   _treeBkgTest(NULL), _treeSigTest(NULL),
+  _variables(NULL),
   _seenP(0.), _truePDG(0), _isReconstructed(false),
   _hasClusters(false), _hasShapes(false), _hasdEdx(false), _hasMomentum(false),
   _signalPDG(0), _pMin(0.), _pMax(0.), _usedVars(0),
@@ -61,6 +62,8 @@ MvaPidTraining::MvaPidTraining() :
             _signalPDG,
             11 );
 
+  _variables = new PIDVariables_MvaPid(this->ParticleTypeByPDG(_signalPDG));
+
 /*  registerProcessorParameter( "UsedVariables" ,
             "Bit mask selecting used variables",
             _usedVars,
@@ -68,8 +71,8 @@ MvaPidTraining::MvaPidTraining() :
 */
 
   std::vector< std::string > usedVars;
-  for (unsigned int i=0; i<_variables.GetVariables()->size(); i++) {
-    usedVars.push_back( _variables.GetVariables()->at(i)->Name() );
+  for (unsigned int i=0; i<_variables->GetVariables()->size(); i++) {
+    usedVars.push_back( _variables->GetVariables()->at(i)->Name() );
   }
 
   registerProcessorParameter( "UsedVariables" ,
@@ -128,12 +131,12 @@ void MvaPidTraining::init() {
   _treeBkgTest = new TTree("treeBkgTest","treeBkgTest");
   _treeSigTest = new TTree("treeSigTest","treeSigTest");
 
-  for(unsigned int i = 0; i < _variables.GetVariables()->size(); i++)
+  for(unsigned int i = 0; i < _variables->GetVariables()->size(); i++)
   {
-    _treeBkgTraining->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)), _variables.GetVariables()->at(i)->Name());
-    _treeSigTraining->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)), _variables.GetVariables()->at(i)->Name());
-    _treeBkgTest->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)), _variables.GetVariables()->at(i)->Name());
-    _treeSigTest->Branch(_variables.GetVariables()->at(i)->Name(), &(_variables.GetMvaVariables()->operator [](i)), _variables.GetVariables()->at(i)->Name());
+    _treeBkgTraining->Branch(_variables->GetVariables()->at(i)->Name(), &(_variables->GetMvaVariables()->operator [](i)), _variables->GetVariables()->at(i)->Name());
+    _treeSigTraining->Branch(_variables->GetVariables()->at(i)->Name(), &(_variables->GetMvaVariables()->operator [](i)), _variables->GetVariables()->at(i)->Name());
+    _treeBkgTest->Branch(_variables->GetVariables()->at(i)->Name(), &(_variables->GetMvaVariables()->operator [](i)), _variables->GetVariables()->at(i)->Name());
+    _treeSigTest->Branch(_variables->GetVariables()->at(i)->Name(), &(_variables->GetMvaVariables()->operator [](i)), _variables->GetVariables()->at(i)->Name());
   }
 
   _treeBkgTraining->Branch("seenP",&_seenP, "seenP/F") ;
@@ -254,7 +257,7 @@ void MvaPidTraining::processEvent( LCEvent * evt ) {
     if (_seenP<_pMin||_seenP>_pMax) continue;
 
     //  PID sensitive variables  ***/
-    short updateres = _variables.Update(rcp);
+    short updateres = _variables->Update(rcp);
     if (updateres & PIDVariable_base::MASK_InvalidMomentum) { _nInvalidMomentum++; _hasMomentum=false; }
     else { _hasMomentum = true; }
     if (updateres & PIDVariable_base::MASK_EmptyClusters) { _nEmptyClusters++; _hasClusters=false; }
@@ -306,7 +309,7 @@ void MvaPidTraining::check( LCEvent * evt ) {
 void MvaPidTraining::end() {
 
 //  streamlog_out(DEBUG) << "Clearing.\n";
-//  _variables.ClearVars();
+//  _variables->ClearVars();
 //  streamlog_out(DEBUG) << "Cleared.\n";
 
 /*  _treeSigTraining->Write();
@@ -332,9 +335,9 @@ void MvaPidTraining::end() {
   // Add sensitive variables - they are known from the map
   for(unsigned int i=0; i<_usedVars.size(); i++)
   {
-    PIDVariable_base* pvar = _variables.FindVariable(_usedVars.at(i));
+    PIDVariable_base* pvar = _variables->FindVariable(_usedVars.at(i));
     if(pvar) {
-      PIDVariable_base* pvar = _variables.GetVariables()->at(i);
+      PIDVariable_base* pvar = _variables->GetVariables()->at(i);
       factory->AddVariable(pvar->Name(), pvar->Description(), pvar->Unit(), 'F');
       streamlog_out(MESSAGE) << "Adding variable " << pvar->Name() << " to training.\n";
     }
@@ -453,3 +456,22 @@ void MvaPidTraining::end() {
 
 }
 
+
+
+const PIDParticle_base* MvaPidTraining::ParticleTypeByPDG(int pdg) {
+  switch(abs(pdg)) {
+  case 11:
+    return &PIDParticles::electronProperties;
+  case 13:
+    return &PIDParticles::muonProperties;
+  case 211:
+    return &PIDParticles::pionProperties;
+  case 321:
+    return &PIDParticles::kaonProperties;
+  case 2212:
+    return &PIDParticles::protonProperties;
+  default:
+    streamlog_out(ERROR) << "Unknown hypothesis with PDG " << pdg << ". Aborting.\n";
+    exit(0);
+  }
+}

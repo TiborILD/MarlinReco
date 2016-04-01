@@ -28,6 +28,7 @@
 #include "PIDParticles.hh"
 
 class TRandom3;
+using PIDParticles::PIDParticle_base;
 
 using EVENT::FloatVec;
 
@@ -251,7 +252,8 @@ class PIDVariables_MvaPid : public PIDVariables_base
 {
 public:
   PIDVariables_MvaPid();
-  PIDVariables_MvaPid(EVENT::ReconstructedParticle*);
+  PIDVariables_MvaPid(const PIDParticle_base *);
+  PIDVariables_MvaPid(const PIDParticle_base *, EVENT::ReconstructedParticle*);
   virtual ~PIDVariables_MvaPid();
 
   virtual int Update(EVENT::ReconstructedParticle*);
@@ -261,6 +263,7 @@ public:
 
 protected:
   virtual void Populate();
+  virtual void Populate(const PIDParticle_base *);
 
   // Copy of all variables for the TMVA::Reader and TMVA::Factory
   // As they do not accept const pointers

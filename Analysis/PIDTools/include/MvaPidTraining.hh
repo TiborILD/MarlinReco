@@ -67,7 +67,7 @@ private:
   TTree* _treeBkgTest;
   TTree* _treeSigTest;
 
-  PIDVariables_MvaPid _variables;
+  PIDVariables_MvaPid *_variables;
   float _seenP;
   int _truePDG;
   bool _isReconstructed, _hasClusters, _hasShapes, _hasdEdx, _hasMomentum;
@@ -89,6 +89,8 @@ private:
 
   // Number of channels for the histogram of Q-statistic
   static const int nChanQ = 1000;
+
+  static const PIDParticle_base* ParticleTypeByPDG(int pdg);
 };
 
 
