@@ -284,9 +284,18 @@ int PID_CluShapeLogTDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::T
 
   FloatVec shapes=cluvec[0]->getShape();
   if(shapes.size()!=0){
+    if (TMath::Abs(shapes[6]) < 1.e3*FLT_MIN) {
+      _value = 1000.; // FIXME: Arbitrary!
+      return 0;
+    }
     float td = shapes[3]/shapes[6];
-    if (td > 0.) { _value = float(TMath::Log(td)); }
-    else         { _value = -FLT_MAX; }
+    if (td > 0.) {
+      double logtd = (TMath::Log(td));
+      if (logtd < -FLT_MAX) { _value = -FLT_MAX; }
+      else if (logtd > FLT_MAX) { _value = FLT_MAX; }
+      else _value = logtd;
+    }
+    else         { _value = -1000.; }
     return 0;
   }
   else {
