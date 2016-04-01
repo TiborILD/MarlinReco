@@ -175,6 +175,36 @@ int PID_CluShapeChi2::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackV
   }
 }
 
+PID_CluShapeLogChi2::PID_CluShapeLogChi2() :
+    PIDVariable_base("CluShapeLogChi2", "Cluster shape log(#chi^{2})", "")
+{}
+
+int PID_CluShapeLogChi2::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  if (cluvec.size() < 1) {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+
+  FloatVec shapes=cluvec[0]->getShape();
+  if(shapes.size()!=0){
+    if (shapes[0] > 0. ) {
+      _value = float(TMath::Log(shapes[0]));
+    }
+    else {
+      _value = -10.; // FIXME: Delicate. This needs to be out of range, but not too far.
+      if(varRand) {
+        _value += varRand->Gaus(0., 1.e-6);
+      }
+    }
+    return 0;
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyShapes;
+  }
+}
+
 PID_CluShapeLDiscr::PID_CluShapeLDiscr() :
     PIDVariable_base("DiscrepancyL", "d_{Shower max} / d_{EM shower max}", "")
 {}
@@ -197,6 +227,28 @@ int PID_CluShapeLDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::Trac
   }
 }
 
+PID_CluShapeLogLDiscr::PID_CluShapeLogLDiscr() :
+    PIDVariable_base("LogDiscrepancyL", "log(d_{Shower max}/d_{EM shower max})", "")
+{}
+
+int PID_CluShapeLogLDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  if (cluvec.size() < 1) {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+
+  FloatVec shapes=cluvec[0]->getShape();
+  if(shapes.size()!=0){
+    _value = TMath::Sign(float(TMath::Log(TMath::Abs(shapes[5]))), shapes[5]);
+    return 0;
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyShapes;
+  }
+}
+
 PID_CluShapeTDiscr::PID_CluShapeTDiscr() :
     PIDVariable_base("DiscrepancyT", "Absorption length", "R_{m}")
 {}
@@ -211,6 +263,30 @@ int PID_CluShapeTDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::Trac
   FloatVec shapes=cluvec[0]->getShape();
   if(shapes.size()!=0){
     _value = shapes[3]/shapes[6];
+    return 0;
+  }
+  else {
+    SetOutOfRange();
+    return MASK_EmptyShapes;
+  }
+}
+
+PID_CluShapeLogTDiscr::PID_CluShapeLogTDiscr() :
+    PIDVariable_base("LogDiscrepancyT", "Log (Absorption length / R_{m})", "")
+{}
+
+int PID_CluShapeLogTDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  if (cluvec.size() < 1) {
+    SetOutOfRange();
+    return MASK_EmptyClusters;
+  }
+
+  FloatVec shapes=cluvec[0]->getShape();
+  if(shapes.size()!=0){
+    float td = shapes[3]/shapes[6];
+    if (td > 0.) { _value = float(TMath::Log(td)); }
+    else         { _value = -FLT_MAX; }
     return 0;
   }
   else {
@@ -475,9 +551,9 @@ void PIDVariables_MvaPid::Populate() {
   _varVec.push_back(new PID_CaloEFrac);
   _varVec.push_back(new PID_CaloMuSys);
 
-  _varVec.push_back(new PID_CluShapeChi2);
-  _varVec.push_back(new PID_CluShapeLDiscr);
-  _varVec.push_back(new PID_CluShapeTDiscr);
+  _varVec.push_back(new PID_CluShapeLogChi2);
+  _varVec.push_back(new PID_CluShapeLogLDiscr);
+  _varVec.push_back(new PID_CluShapeLogTDiscr);
   _varVec.push_back(new PID_CluShapeXl20);
 
   _varVec.push_back(new PID_dEdxLogChi2(&PIDParticles::electronProperties));

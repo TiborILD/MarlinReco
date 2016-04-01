@@ -118,10 +118,26 @@ public:
   virtual void SetOutOfRange() { _value = -1.; }
 };
 
+class PID_CluShapeLogChi2: public PIDVariable_base
+{
+public:
+  PID_CluShapeLogChi2();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.; }
+};
+
 class PID_CluShapeLDiscr: public PIDVariable_base
 {
 public:
   PID_CluShapeLDiscr();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -FLT_MAX; }
+};
+
+class PID_CluShapeLogLDiscr: public PIDVariable_base
+{
+public:
+  PID_CluShapeLogLDiscr();
   virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
   virtual void SetOutOfRange() { _value = -FLT_MAX; }
 };
@@ -132,6 +148,14 @@ public:
   PID_CluShapeTDiscr();
   virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
   virtual void SetOutOfRange() { _value = -1.; }
+};
+
+class PID_CluShapeLogTDiscr: public PIDVariable_base
+{
+public:
+  PID_CluShapeLogTDiscr();
+  virtual int Update(const EVENT::ClusterVec, const EVENT::TrackVec, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -FLT_MAX; }
 };
 
 class PID_CluShapeXl20: public PIDVariable_base
