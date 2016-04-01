@@ -80,7 +80,7 @@ private:
   std::string _mvaMethodOptions;
   std::string _weightFileName;
 //  std::string _usedVars; // Binary code (in text form) which vars are used
-  std::vector<std::string> _usedVars; // Binary code (in text form) which vars are used
+  std::vector<std::string> _usedVars; // list of variable names that are used
 
   // Counters
   unsigned int _nEvt;

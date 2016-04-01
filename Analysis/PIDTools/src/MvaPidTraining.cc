@@ -64,11 +64,6 @@ MvaPidTraining::MvaPidTraining() :
 
   _variables = new PIDVariables_MvaPid(this->ParticleTypeByPDG(_signalPDG));
 
-/*  registerProcessorParameter( "UsedVariables" ,
-            "Bit mask selecting used variables",
-            _usedVars,
-            std::string("11111111111111111111111111111111") );
-*/
 
   std::vector< std::string > usedVars;
   for (unsigned int i=0; i<_variables->GetVariables()->size(); i++) {
@@ -337,7 +332,6 @@ void MvaPidTraining::end() {
   {
     PIDVariable_base* pvar = _variables->FindVariable(_usedVars.at(i));
     if(pvar) {
-      PIDVariable_base* pvar = _variables->GetVariables()->at(i);
       factory->AddVariable(pvar->Name(), pvar->Description(), pvar->Unit(), 'F');
       streamlog_out(MESSAGE) << "Adding variable " << pvar->Name() << " to training.\n";
     }
