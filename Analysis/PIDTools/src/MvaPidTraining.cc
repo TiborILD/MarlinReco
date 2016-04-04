@@ -62,13 +62,7 @@ MvaPidTraining::MvaPidTraining() :
             _signalPDG,
             11 );
 
-  _variables = new PIDVariables_MvaPid(this->ParticleTypeByPDG(_signalPDG));
-
-
   std::vector< std::string > usedVars;
-  for (unsigned int i=0; i<_variables->GetVariables()->size(); i++) {
-    usedVars.push_back( _variables->GetVariables()->at(i)->Name() );
-  }
 
   registerProcessorParameter( "UsedVariables" ,
             "List of used variables",
@@ -116,6 +110,8 @@ void MvaPidTraining::init() {
 
   // usually a good idea to
   printParameters() ;
+
+  _variables = new PIDVariables_MvaPid(ParticleTypeByPDG(_signalPDG));
 
   _nEvt = 0;
   _nMCPtot = _nRec = _nTrkCaloMismatch = 0;
@@ -328,16 +324,26 @@ void MvaPidTraining::end() {
   factory->AddBackgroundTree(_treeBkgTest, 1., TMVA::Types::kTesting);
 
   // Add sensitive variables - they are known from the map
-  for(unsigned int i=0; i<_usedVars.size(); i++)
-  {
-    PIDVariable_base* pvar = _variables->FindVariable(_usedVars.at(i));
-    if(pvar) {
+  if ( _usedVars.size() > 0 ) {
+    for(unsigned int i=0; i<_usedVars.size(); i++)
+    {
+      PIDVariable_base* pvar = _variables->FindVariable(_usedVars.at(i));
+      if(pvar) {
+        factory->AddVariable(pvar->Name(), pvar->Description(), pvar->Unit(), 'F');
+        streamlog_out(MESSAGE) << "Adding variable " << pvar->Name() << " to training.\n";
+      }
+      else {
+        streamlog_out(WARNING) << "Requested addition of unknown variable "
+            << _usedVars.at(i) << ". Skipping." << std::endl;
+      }
+    }
+  }
+  else {
+    for(unsigned int i=0; i<_variables->GetVariables()->size(); i++)
+    {
+      PIDVariable_base* pvar = _variables->GetVariables()->at(i);
       factory->AddVariable(pvar->Name(), pvar->Description(), pvar->Unit(), 'F');
       streamlog_out(MESSAGE) << "Adding variable " << pvar->Name() << " to training.\n";
-    }
-    else {
-      streamlog_out(WARNING) << "Requested addition of unknown variable "
-          << _usedVars.at(i) << ". Skipping." << std::endl;
     }
   }
   factory->AddSpectator("seenP", "Measured momentum", "GeV", 'F');

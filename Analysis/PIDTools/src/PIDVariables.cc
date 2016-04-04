@@ -228,7 +228,7 @@ int PID_CluShapeLDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::Trac
 }
 
 PID_CluShapeLogLDiscr::PID_CluShapeLogLDiscr() :
-    PIDVariable_base("LogDiscrepancyL", "log(d_{Shower max}/d_{EM shower max})", "")
+    PIDVariable_base("CluShapeLogLDiscr", "log(d_{Shower max}/d_{EM shower max})", "")
 {}
 
 int PID_CluShapeLogLDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
@@ -272,7 +272,7 @@ int PID_CluShapeTDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::Trac
 }
 
 PID_CluShapeLogTDiscr::PID_CluShapeLogTDiscr() :
-    PIDVariable_base("LogDiscrepancyT", "Log (Absorption length / R_{m})", "")
+    PIDVariable_base("CluShapeLogTDiscr", "Log (Absorption length / R_{m})", "")
 {}
 
 int PID_CluShapeLogTDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
@@ -291,8 +291,8 @@ int PID_CluShapeLogTDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::T
     float td = shapes[3]/shapes[6];
     if (td > 0.) {
       double logtd = (TMath::Log(td));
-      if (logtd < -FLT_MAX) { _value = -FLT_MAX; }
-      else if (logtd > FLT_MAX) { _value = FLT_MAX; }
+      if (logtd < -FLT_MAX) { _value = -1000; }
+      else if (logtd > FLT_MAX) { _value = 1000; }
       else _value = logtd;
     }
     else         { _value = -1000.; }
@@ -305,7 +305,7 @@ int PID_CluShapeLogTDiscr::Update(const EVENT::ClusterVec cluvec, const EVENT::T
 }
 
 PID_CluShapeXl20::PID_CluShapeXl20() :
-    PIDVariable_base("Xl20", "xl20", "?")
+    PIDVariable_base("CluShapeXl20", "xl20", "?")
 {}
 
 int PID_CluShapeXl20::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
@@ -414,6 +414,35 @@ int PID_dEdxLogChi2::Update(const EVENT::ClusterVec cluvec,
 }
 
 
+
+CluShapeVar::CluShapeVar(const CluShapeVar &ref) :
+  PIDVariable_base(ref.Name(), ref.Description(), ref.Unit()),
+  _ivar(ref.GetIvar())
+{}
+
+CluShapeVar::CluShapeVar(const unsigned int ivar) :
+  PIDVariable_base(Form("CluShapeVar_%d", ivar),
+         Form("Cluster shape variable No. %d", ivar), ""),
+  _ivar(ivar)
+{}
+
+CluShapeVar::~CluShapeVar() {}
+
+int CluShapeVar::Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3)
+{
+  if(cluvec.size()==0) {
+    SetOutOfRange();
+    return MASK_EmptyShapes|MASK_EmptyClusters;
+  }
+  FloatVec shapes = cluvec[0]->getShape();
+  if(shapes.size() < _ivar) {
+    SetOutOfRange();
+    return MASK_EmptyShapes;
+  }
+  _value = shapes[_ivar];
+  return 0;
+}
+
 /*******************************************************
  *
  *   Implementation of the PIDVariables base and derived
@@ -480,6 +509,16 @@ void PIDVariables_base::ClearVars() {
   _varVec.clear();
 }
 
+const char* PIDVariables_base::Name(unsigned int i) const {
+  if( i > _varVec.size()) { return "OutOfRange"; }
+  return _varVec.at(i)->Name();
+}
+
+float PIDVariables_base::GetValue(unsigned int i) const {
+  if( i > _varVec.size()) { return 0.; }
+  return _varVec.at(i)->Value();
+}
+
 
 
 /***  PIDVariables for the Likelihood PID processor ***/
@@ -518,6 +557,12 @@ void PIDVariables_LLPID::Populate() {
   _varVec.push_back(new PID_dEdxChi2(&PIDParticles::protonProperties));
 }
 
+
+/**************************************************
+ *
+ * Implementation of PIDVariables_MvaPid
+ *
+ **************************************************/
 
 PIDVariables_MvaPid::PIDVariables_MvaPid()
 {
@@ -562,10 +607,13 @@ void PIDVariables_MvaPid::RefreshMvaVars()
 
 void PIDVariables_MvaPid::Populate() {
 
+//  std::cout << "Populating MvaPid variables for hypothesis electron.\n";
   Populate(&PIDParticles::electronProperties);
 }
 
 void PIDVariables_MvaPid::Populate(const PIDParticle_base * particle) {
+
+//  std::cout << "Populating MvaPid variables for hypothesis " << particle->Name() << std::endl;
 
   _varVec.push_back(new PID_CaloTotal);
   _varVec.push_back(new PID_CaloEFrac);
@@ -582,3 +630,61 @@ void PIDVariables_MvaPid::Populate(const PIDParticle_base * particle) {
     _mvaVars.push_back(0.);
   }
 }
+
+
+
+/**************************************************
+ *
+ * Implementation of PIDVariables_CluShapes
+ *
+ **************************************************/
+
+PIDVariables_CluShapes::PIDVariables_CluShapes()
+{
+  Populate();
+}
+
+PIDVariables_CluShapes::PIDVariables_CluShapes(EVENT::ReconstructedParticle* particle)
+{
+  Populate();
+  Update(particle);
+}
+
+
+PIDVariables_CluShapes::~PIDVariables_CluShapes()
+{}
+
+int PIDVariables_CluShapes::Update(EVENT::ReconstructedParticle* particle)
+{
+  int result = PIDVariables_base::Update(particle);
+  RefreshCopyVars();
+  return result;
+}
+
+void PIDVariables_CluShapes::SetOutOfRange()
+{
+  PIDVariables_base::SetOutOfRange();
+  RefreshCopyVars();
+}
+
+void PIDVariables_CluShapes::RefreshCopyVars()
+{
+  for(unsigned int i=0; i<_varVec.size(); i++) {
+    _copyVars.at(i) = _varVec.at(i)->Value();
+  }
+}
+
+void PIDVariables_CluShapes::Populate() {
+
+  for (unsigned int i=0; i<20; i++) {
+    _varVec.push_back(new CluShapeVar(i));
+  }
+
+  for(unsigned int i=0; i<_varVec.size(); i++) {
+    _copyVars.push_back(0.);
+  }
+}
+
+
+
+

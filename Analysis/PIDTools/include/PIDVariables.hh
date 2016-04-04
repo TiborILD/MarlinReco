@@ -197,6 +197,29 @@ public:
 };
 
 
+/*****************************************************************
+ *
+ * Following variable directly copies the cluster shapes vector
+ * member
+ *
+ ****************************************************************/
+
+class CluShapeVar : public PIDVariable_base
+{
+public:
+  CluShapeVar(const CluShapeVar&);
+  CluShapeVar(const unsigned int ivar=0);
+  ~CluShapeVar();
+  virtual int Update(const EVENT::ClusterVec cluvec, const EVENT::TrackVec trax, const TVector3 p3);
+  virtual void SetOutOfRange() { _value = -1.; }
+
+  unsigned int GetIvar() const { return _ivar; }
+
+private:
+  const unsigned int _ivar;
+};
+
+
 
 /*****************************************************************
  *
@@ -224,6 +247,9 @@ public:
   virtual void SetOutOfRange();
 
   virtual void ClearVars();
+  unsigned int Size() const { return _varVec.size(); }
+  const char* Name(unsigned int i) const ;
+  float GetValue(unsigned int i) const ;
 
 protected:
   VarVec _varVec;
@@ -269,6 +295,30 @@ protected:
   // As they do not accept const pointers
   FloatVec _mvaVars;
   void RefreshMvaVars();
+
+};
+
+/***  PIDVariables with cluster shapes from the ComputeShowerShapesProcessor ***/
+
+class PIDVariables_CluShapes : public PIDVariables_base
+{
+public:
+  PIDVariables_CluShapes();
+  PIDVariables_CluShapes(EVENT::ReconstructedParticle*);
+  virtual ~PIDVariables_CluShapes();
+
+  virtual int Update(EVENT::ReconstructedParticle*);
+  virtual void SetOutOfRange();
+
+  FloatVec* GetCopyOfVariables() { return &_copyVars; }
+
+protected:
+  virtual void Populate();
+
+  // Copy of all variables for the TMVA::Reader and TMVA::Factory
+  // As they do not accept const pointers
+  FloatVec _copyVars;
+  void RefreshCopyVars();
 
 };
 
