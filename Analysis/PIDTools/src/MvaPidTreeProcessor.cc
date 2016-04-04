@@ -1,4 +1,4 @@
-#include <PIDvarPDF.hh>
+#include <MvaPidTreeProcessor.hh>
 
 #include <UTIL/LCRelationNavigator.h>
 #include "UTIL/LCIterator.h"
@@ -10,10 +10,10 @@
 
 
 
-PIDvarPDF aPIDvarPDF ;
+MvaPidTreeProcessor aMvaPidTreeProcessor ;
 
 
-PIDvarPDF::PIDvarPDF() : Processor("PIDvarPDF"),
+MvaPidTreeProcessor::MvaPidTreeProcessor() : Processor("MvaPidTreeProcessor"),
     nEvt(0),
     varTree(NULL),
     nMCParticles(0), nMCPtot(0), nRec(0), nTrkCaloMismatch(0)
@@ -63,17 +63,8 @@ PIDvarPDF::PIDvarPDF() : Processor("PIDvarPDF"),
 
 }
 
-/*
-PIDvarPDF::~PIDvarPDF() {
-  // Is this necessary, or does marlin magically take care of this?
-  for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++) {
-    for (particle_c_iterator jt = pidVars.GetParticleMap()->begin(); jt != pidVars.GetParticleMap()->end(); jt++)
-    delete sensVarHistos[jt->first][it->first];
-  }
-}
-*/
 
-void PIDvarPDF::init() {
+void MvaPidTreeProcessor::init() {
 
   streamlog_out(DEBUG) << "   init called  "
 		       << std::endl ;
@@ -89,68 +80,19 @@ void PIDvarPDF::init() {
   varTree = new TTree("varTree","varTree");
   varTree->Branch("nMCParticles",&nMCParticles,"nMCParticles/I") ;
 
-  // Sensitive variables used by LikelihoodPID
-  for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++) {
-    varTree->Branch(it->second.Name(), &sensitiveVars[it->first]);
-
-    for(particle_c_iterator jt  = pidVars.GetParticleMap()->begin();
-                            jt != pidVars.GetParticleMap()->end(); jt++)
-    {
-      if(it->second.NBinsP() > 1) {
-        streamlog_out(DEBUG) << "Defining histogram " << Form("%s.%s", jt->second.Name(), it->second.Name())
-                  << " with " << it->second.NBinsP() << " bins in P with limits:\n";
-        for (int i=0; i<it->second.NBinsP()+1; i++) streamlog_out(DEBUG) << it->second.PBins()[i] << ", ";
-        streamlog_out(DEBUG) << std::endl;
-        sensVarHistos[jt->first][it->first] =
-          new TH2F(Form("%s.%s", jt->second.Name(), it->second.Name()),
-                   Form("%s.%s; %s; p (GeV)", jt->second.Name(), it->second.Name(), it->second.AxisTitle()),
-                          it->second.NBinsV(), it->second.LoLim(), it->second.HiLim(),
-                          it->second.NBinsP(), it->second.PBins());
-      }
-      else {
-        sensVarHistos[jt->first][it->first] =
-          new TH1F(Form("%s.%s", jt->second.Name(), it->second.Name()),
-                   Form("%s.%s; %s;", jt->second.Name(), it->second.Name(), it->second.AxisTitle()),
-                          it->second.NBinsV(), it->second.LoLim(), it->second.HiLim());
-
-      }
-    }
+  // Cluster shape variables
+  for(unsigned int i=0; i<_variables.Size(); i++) {
+    _treeVars.push_back(new vector<double>);
+    varTree->Branch(_variables.Name(i), _treeVars.back());
   }
 
-
-  static const char *bg = "(x/[5])";
-  static const char *bg2 = Form("(%s**2)", bg);
-  static const char *b2 = Form("(%s/(1+%s))", bg2, bg2);
-  static const char *tmax = Form("[2]*%s", bg2);
-  static const char *bbfun = Form("(0.5*[0]*log([1]*%s*%s)-[3]*%s-[4]*%s/2)/%s", bg2, tmax, b2, bg, b2);
-
-  for(particle_c_iterator jt  = pidVars.GetParticleMap()->begin();
-                          jt != pidVars.GetParticleMap()->end(); jt++)
-  {
-    bbFunction[jt->first] = new TF1(Form("%s_BetheBlochFun", jt->second.Name()), bbfun, 0., 300.);
-    for (int i=0; i<5; i++)
-      bbFunction[jt->first]->FixParameter(i, jt->second.GetBBpars()[i]);
-
-    bbFunction[jt->first]->FixParameter(5, jt->second.mass);
-
-    bbHistos[jt->first] = new TH1F(Form("%s_BetheBloch", jt->second.Name()),
-                   Form("%s Bethe-Bloch; p (GeV); dE/dx (MIP)", jt->second.Name()),
-                          100, 0., 300.);
-    bbHistos[jt->first]->GetListOfFunctions()->Add(bbFunction[jt->first]);
-    bbHistos[jt->first]->SetMinimum(0.);
-    bbHistos[jt->first]->SetMaximum(10.);
-
-  }
   // Other variables for study
   varTree->Branch("trueP",&trueP) ;
   varTree->Branch("truePt",&truePt) ;
   varTree->Branch("trueTheta",&trueTheta) ;
   varTree->Branch("truePhi",&truePhi) ;
   varTree->Branch("trueCharge",&trueCharge) ;
-  varTree->Branch("trued0",&trued0) ;
-  varTree->Branch("truez0",&truez0) ;
   varTree->Branch("truePDG",&truePDG) ;
-  varTree->Branch("trueMother",&trueMother) ;
 
   varTree->Branch("isReconstructed",&isReconstructed) ;
   varTree->Branch("isSeen",&isSeen) ;
@@ -158,16 +100,15 @@ void PIDvarPDF::init() {
   varTree->Branch("seenPt",&seenPt) ;
   varTree->Branch("seenTheta",&seenTheta) ;
   varTree->Branch("seenPhi",&seenPhi) ;
-  varTree->Branch("seenDEdx",&seenDEdx) ;
   varTree->Branch("seenCharge",&seenCharge) ;
 
 }
 
-void PIDvarPDF::processRunHeader( LCRunHeader* run) {
+void MvaPidTreeProcessor::processRunHeader( LCRunHeader* run) {
     
 } 
 
-void PIDvarPDF::processEvent( LCEvent * evt ) {
+void MvaPidTreeProcessor::processEvent( LCEvent * evt ) {
 
   //streamlog_out(MESSAGE) << " start processing event # " << evt->getEventNumber() << std::endl;
 
@@ -176,25 +117,22 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
 
   nMCParticles = 0;
 
-  for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++)
-    { sensitiveVars[it->first].clear(); }
+  for(unsigned int i=0; i<_treeVars.size(); i++) {
+    _treeVars.at(i)->clear();
+  }
 
   trueP.clear();
   truePt.clear();
   trueTheta.clear();
   truePhi.clear();
   trueCharge.clear();
-  trued0.clear();
-  truez0.clear();
   truePDG.clear();
-  trueMother.clear();
   isReconstructed.clear();
   isSeen.clear();
   seenP.clear();
   seenPt.clear();
   seenTheta.clear();
   seenPhi.clear();
-  seenDEdx.clear();
   seenCharge.clear();
 
 
@@ -229,19 +167,9 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
     trueTheta.push_back(p.Theta());
     truePhi.push_back(p.Phi());
     trueCharge.push_back(mcp->getCharge());
-    trued0.push_back(v.Perp());
-    truez0.push_back(v.Z());
     truePDG.push_back(mcp->getPDG());
 
 
-    if (mcp->getParents().size() > 0) {
-      streamlog_out(DEBUG) << " Pushing back true mother " << std::endl;
-      trueMother.push_back(mcp->getParents()[0]->getPDG());
-    }
-    else {
-      streamlog_out(DEBUG) << " Pushing back -1 " << std::endl;
-      trueMother.push_back(-1);
-    }
 
     streamlog_out(DEBUG) << " get reco particle " << std::endl;
     const EVENT::LCObjectVec& recovec = mc2recoNav.getRelatedToObjects(mcp);
@@ -299,19 +227,11 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
       TVector3 p3(rcp->getMomentum());
 
       //  PID sensitive variables  ***/
-      pidVars.Update(rcp);
-      for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++)
+      _variables.Update(rcp);
+      for(unsigned int i=0; i<_variables.Size(); i++)
       {
-        double value = pidVars.GetValue(it->first);
-        sensitiveVars[it->first].push_back(value);
-        // Find which histo to fill, if any, by looking at PDG
-        for (particle_c_iterator jt = pidVars.GetParticleMap()->begin(); jt != pidVars.GetParticleMap()->end(); jt++) {
-          if(jt->second.pdg == TMath::Abs(mcp->getPDG())) {
-            if(it->second.NBinsP() > 1) { sensVarHistos[jt->first][it->first]->Fill(value, p3.Mag()); }
-            else { sensVarHistos[jt->first][it->first]->Fill(value); }
-            break;
-          }
-        }
+        double value = _variables.GetValue(i);
+        _treeVars.at(i)->push_back(value);
       }
 
 
@@ -321,22 +241,23 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
       seenTheta.push_back(p3.Theta());
       seenPhi.push_back(p3.Phi());
       seenCharge.push_back(rcp->getCharge());
-      seenDEdx.push_back(pidVars.GetDEdx());
 
     } // if reco part
     // IMPROVE HERE: CHECK if track or cluster exists!
     else {
       streamlog_out(DEBUG) << "no ReconstructedParticle found for this mcp!" << std::endl ;
 
-      for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++)
-      { sensitiveVars[it->first].push_back(-FLT_MAX); }
+      for(unsigned int i=0; i<_variables.Size(); i++)
+      {
+        double value = _variables.GetValue(i);
+        _treeVars.at(i)->push_back(-FLT_MAX);
+      }
 
       seenP.push_back(0);
       seenPt.push_back(0);
       seenTheta.push_back(0);
       seenPhi.push_back(0);
       seenCharge.push_back(0);
-      seenDEdx.push_back(0);
 
     }
   }  // loop over MCPs
@@ -352,24 +273,12 @@ void PIDvarPDF::processEvent( LCEvent * evt ) {
 
 
 
-void PIDvarPDF::check( LCEvent * evt ) {
+void MvaPidTreeProcessor::check( LCEvent * evt ) {
 
 }
 
 
-void PIDvarPDF::end(){
-
-  // Normalize the PDF histograms
-  for(variable_c_iterator it = pidVars.GetMap()->begin(); it != pidVars.GetMap()->end(); it++) {
-    for(particle_c_iterator jt  = pidVars.GetParticleMap()->begin();
-                            jt != pidVars.GetParticleMap()->end(); jt++)
-    {
-      TH1* histo = sensVarHistos[jt->first][it->first];
-      histo->Scale(1./histo->Integral());
-    }
-  }
-
-
+void MvaPidTreeProcessor::end(){
   streamlog_out(MESSAGE) << "Found " << nMCPtot << " MC particles.\n";
   streamlog_out(MESSAGE) << "Matched " << nRec << " reconstructed particles.\n";
   streamlog_out(MESSAGE) << "Found " << nTrkCaloMismatch << " cases of track/calo mismatch.\n";
